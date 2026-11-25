@@ -182,6 +182,42 @@ class CliTests(Base):
         self.assertEqual(self.vc("review", "nothing like this")[0], 1)
         self.assertIn("pandas groupby", self.vc("topics")[1])
 
+    def test_no_gate_lesson_never_blocks_and_still_logs(self):
+        self.assertEqual(self.vc("start", "pandas groupby", "--no-gate")[0], 0)
+        self.assertEqual(self.gate(self.project / "app.py")[0], 0)
+        self.write_example()
+        self.assertEqual(self.vc("build")[0], 0)
+        data, _ = self.page_data()
+        self.assertIs(data["gate"], False)
+        self.assertEqual(data["zoom"], "how")
+        self.assertTrue(any(scene.get("deeper") for scene in data["lesson"]))
+        code = base64.b64decode(data["code"]).decode()
+        status, out = self.vc("unlock", code + ".1-y-1")
+        self.assertEqual(status, 0, out)
+        entry = json.loads((self.home / "history.jsonl").read_text().splitlines()[-1])
+        self.assertEqual((entry["gated"], entry["zoom"], entry["result"]), (False, "how", "pass"))
+
+    def test_placement_quiz_sorts_concepts_into_known_and_learning(self):
+        self.vc("concepts", "add", "Flask routes", "--group", "tools", "--weight", "8")
+        self.vc("concepts", "add", "pandas groupby", "--group", "tools", "--weight", "5")
+        self.vc("start", "Placement quiz", "--no-gate")
+        question = lambda concept: {"type": "choice", "concept": concept, "prompt": "p", "why": "w", "options": ["a", "b"], "answer": 0}
+        content = {"placement": True, "lesson": [], "questions": [question("Flask routes"), question("Flask routes"),
+                                                                   question("pandas groupby"), question("pandas groupby")]}
+        quizzes = self.project / ".vibe-check" / "quizzes"
+        (quizzes / "placement-quiz.json").write_text(json.dumps(content))
+        self.assertEqual(self.vc("build")[0], 0)
+        data, _ = self.page_data("placement-quiz")
+        code = base64.b64decode(data["code"]).decode()
+        status, out = self.vc("unlock", code + ".0-0-10-0")       # groupby: one question needed a second try
+        self.assertEqual(status, 0, out)
+        self.assertIn("Already known (no lesson needed): Flask routes", out)
+        self.assertIn("On the learning list: pandas groupby", out)
+        self.assertIn("Already passed", self.vc("start", "Flask routes")[1])
+        listing = self.vc("concepts")[1]
+        self.assertIn("Flask routes: known", listing)
+        self.assertIn("pandas groupby: on the learning list", listing)
+
     def test_commands_find_the_project_from_a_subfolder(self):
         self.vc("start", "groupby")
         sub = self.project / "src" / "deep"

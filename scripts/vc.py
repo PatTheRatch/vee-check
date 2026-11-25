@@ -2,16 +2,20 @@
 """Vibe Check CLI. Claude runs these to close and open the gate.
 
   vc.py start "<topic>"        begin a Vibe Check (gate closes); says where to write the quiz content
+                               add --no-gate for a lesson that doesn't block edits ("teach me X", tours)
   vc.py build                  turn the quiz content into the quiz page and open it in the browser
   vc.py unlock <code>          check a pasted pass code; if right, mark the topic passed (gate opens)
   vc.py skip                   drop the pending quiz without passing it (gate opens)
   vc.py status                 show the gate, the settings and what has been passed here
   vc.py config [set KEY VALUE] show or change settings (add --global for all projects)
   vc.py topics                 list what has been covered, across all projects
+  vc.py concepts [add ...]     this project's concept list (from a scan): known, learning or gate
   vc.py review "<topic>"       reopen a passed topic's lesson and quiz, with no gate
 
 State in the user's project, in .vibe-check/:
   pending.json   the quiz in progress. While it exists, gate.py blocks edits.
+  practice.json  a no-gate lesson in progress. The gate ignores it.
+  concepts.json  the concepts found in this project and where each stands.
   passed.json    topics already passed, so they are not quizzed again.
   config.json    this project's settings.
   quizzes/       quiz content (<topic>.json) and the built pages (<topic>.html).
@@ -47,6 +51,7 @@ SETTINGS = {
     "style": ("concepts", ["concepts", "hands_on"], "concepts = understand it well enough to explain it; hands_on = also write a small piece yourself"),
     "look": ("arcade", ["arcade", "classic", "plain"], "arcade = custom interactive lesson, most tokens and slowest; classic = animated cards; plain = one simple page, fewest tokens"),
     "level": ("beginner", ["beginner", "intermediate", "advanced"], "how much the lesson assumes and how hard the questions are"),
+    "zoom": ("how", ["what", "how", "weeds"], "starting depth: what = what it does and why; how = the moving parts; weeds = the actual lines and edge cases"),
     "lesson": (True, [True, False], "show the Learn part before the Check"),
     "lesson_cards": (4, (2, 8), "how many lesson scenes"),
     "questions": (3, (1, 10), "how many questions"),
@@ -55,6 +60,8 @@ SETTINGS = {
 }
 SCENE_TYPES = {"story", "steps", "playground", "card", "custom"}
 QUESTION_TYPES = {"choice", "predict", "explain", "order"}
+CONCEPT_GROUPS = ["big_picture", "tools", "techniques"]
+CONCEPT_STATUSES = ["learning", "known", "gate"]
 
 
 # ---------- where things live ----------
@@ -385,7 +392,8 @@ def add_history(state, pending, result, content=None, tail=""):
     entry = {
         "date": now.date().isoformat(), "time": now.strftime("%H:%M"),
         "project": str(state.parent), "topic": pending.get("topic"), "slug": pending.get("slug"),
-        "result": result, "look": pending.get("look"), "level": pending.get("level"),
+        "result": result, "kind": pending.get("kind", "lesson"), "gated": pending.get("gated", True),
+        "look": pending.get("look"), "level": pending.get("level"), "zoom": pending.get("zoom"),
         "badge": (content or {}).get("badge"),
         "lesson": scenes_for("plain", content.get("lesson", [])) if content else [],
         "questions": questions, "answers_recorded": bool(tail),
@@ -454,7 +462,16 @@ th,td{{text-align:left;padding:.4rem 1rem .4rem 0;border-bottom:1px solid color-
 
 # ---------- commands ----------
 
-def start(state, topic):
+def in_progress(state):
+    """(file, True) for a gated quiz, (file, False) for a no-gate lesson, or (None, None)."""
+    if (state / "pending.json").exists():
+        return state / "pending.json", True
+    if (state / "practice.json").exists():
+        return state / "practice.json", False
+    return None, None
+
+
+def start(state, topic, gated=True):
     pending_file = state / "pending.json"
     slug = slugify(topic)
     if not slug:
@@ -465,20 +482,26 @@ def start(state, topic):
             f'A quiz on "{current}" is already pending. '
             "It has to be passed (unlock <code>) or skipped (skip) first."
         )
-    if slug in read_json(state / "passed.json"):
+    if gated and slug in read_json(state / "passed.json"):
         print(f'Already passed: "{topic}". No quiz needed. Gate: OPEN.')
         return 0
 
     config = load_config(state)
     quizzes = Path(STATE_DIR) / "quizzes"
-    write_json(pending_file, {
+    write_json(pending_file if gated else state / "practice.json", {
         "topic": topic, "slug": slug,
         "content": str(quizzes / f"{slug}.json"), "quiz": str(quizzes / f"{slug}.html"),
         "started": date.today().isoformat(),
     })
     (state / "quizzes").mkdir(exist_ok=True)
-    print(f'Vibe Check started: "{topic}"')
-    print(f"Gate: CLOSED. Edits outside {STATE_DIR}/ are blocked until the quiz is passed or skipped.")
+    if gated:
+        print(f'Vibe Check started: "{topic}"')
+        print(f"Gate: CLOSED. Edits outside {STATE_DIR}/ are blocked until the quiz is passed or skipped.")
+        if read_json(state / "concepts.json").get(slug, {}).get("status") == "learning":
+            print("Note: this concept is on the learning list (already in the code), which doesn't gate by default.")
+    else:
+        print(f'Lesson started with no gate: "{topic}"')
+        print("Gate: OPEN. Nothing is blocked; the code at the end only records it in the Learning Log.")
     print(f"Settings: {json.dumps(config)}")
     if not is_set_up(state):
         print("First run here: ask the user the setup questions and save them with config set, before writing the quiz.")
@@ -488,8 +511,8 @@ def start(state, topic):
 
 
 def build(state, open_page=True):
-    pending_file = state / "pending.json"
-    if not pending_file.exists():
+    pending_file, gated = in_progress(state)
+    if not pending_file:
         return fail("No quiz is pending. Run start \"<topic>\" first.")
     pending = read_json(pending_file)
     if not pending.get("content") or not pending.get("slug"):
@@ -515,8 +538,10 @@ def build(state, open_page=True):
     look = config["look"]
     lesson = scenes_for(look, content.get("lesson", [])) if config["lesson"] else []
     code = new_pass_code()
+    zoom = content.get("zoom") if content.get("zoom") in SETTINGS["zoom"][1] else config["zoom"]
     page_data = {
         "topic": pending["topic"], "look": look, "level": config["level"], "style": config["style"],
+        "gate": gated, "zoom": zoom,
         "pass_bar": config["pass_bar"], "badge": content.get("badge"),
         "lesson": lesson, "questions": content["questions"], "stats": stats(read_history()),
     }
@@ -530,18 +555,22 @@ def build(state, open_page=True):
     review_file.parent.mkdir(parents=True, exist_ok=True)
     review_file.write_text(stamp(look, {**page_data, "review": True}), encoding="utf-8")
 
-    pending.update({"code_hash": fingerprint(code), "look": look, "level": config["level"], "review_file": str(review_file)})
+    pending.update({"code_hash": fingerprint(code), "look": look, "level": config["level"], "zoom": zoom,
+                    "review_file": str(review_file)})
     write_json(pending_file, pending)
     opened = open_in_browser(quiz_file, open_page)
     print(f'Quiz page built ({look} look): {quiz_file}')
     print("Opened in the browser." if opened else "It did not open by itself: give the user that path to open.")
-    print('Tell the user in one line: "Vibe Check: pass the quiz and paste the code here." Then stop and wait.')
+    if gated:
+        print('Tell the user in one line: "Vibe Check: pass the quiz and paste the code here." Then stop and wait.')
+    else:
+        print("No gate: carry on working. If the user pastes the code from the end, run unlock to log it.")
     return 0
 
 
 def unlock(state, pasted):
-    pending_file = state / "pending.json"
-    if not pending_file.exists():
+    pending_file, gated = in_progress(state)
+    if not pending_file:
         return fail("No quiz is pending, so there is nothing to unlock. Gate: OPEN.")
     quiz = read_json(pending_file)
     if not quiz.get("slug"):
@@ -552,35 +581,77 @@ def unlock(state, pasted):
     code, _, tail = pasted.strip().partition(".")
     if fingerprint(code) != quiz["code_hash"]:
         return fail(
-            "That pass code doesn't match. Gate: still CLOSED. "
+            f"That pass code doesn't match. Gate: {'still CLOSED' if gated else 'OPEN (this lesson has no gate)'}. "
             "Ask the user to copy the code shown at the end of the quiz."
         )
 
     content = read_json(state.parent / quiz.get("content", ""))
+    tail = re.sub(r"[^0-9a-z-]", "", tail.lower())
+    topic = quiz.get("topic", quiz["slug"])
     passed_file = state / "passed.json"
     passed = read_json(passed_file)
-    passed[quiz["slug"]] = {"topic": quiz.get("topic", quiz["slug"]), "passed": date.today().isoformat()}
+    today = date.today().isoformat()
+    placement = bool(content.get("placement"))
+    if placement:
+        lines = sort_placement(state, content, tail, passed, today)
+    else:
+        passed[quiz["slug"]] = {"topic": topic, "passed": today}
     write_json(passed_file, passed)
     pending_file.unlink()
+    print(f'Passed: "{topic}". Gate: OPEN.' + (" Edits are allowed again." if gated else ""))
+    if placement:
+        print("\n".join(lines))
     try:
-        entry = add_history(state, quiz, "pass", content if content.get("questions") else None, re.sub(r"[^0-9a-z-]", "", tail.lower()))
+        entry = add_history(state, {**quiz, "gated": gated, "kind": "placement" if placement else "lesson"},
+                            "pass", content if content.get("questions") else None, tail)
         totals = stats(read_history())
-        print(f'Passed: "{passed[quiz["slug"]]["topic"]}". Gate: OPEN. Edits are allowed again.')
         print(f"+{entry_xp(entry)} XP. Level {totals['level']}, {totals['xp']} XP, {totals['streak']}-day streak.")
+        if not tail:
+            print("(Only the short code was pasted, so the answers were not recorded.)")
     except OSError as problem:  # the gate must open even if the log can't be written
-        print(f'Passed: "{passed[quiz["slug"]]["topic"]}". Gate: OPEN. Edits are allowed again.')
         print(f"(The Learning Log could not be updated: {problem})")
     return 0
 
 
+def sort_placement(state, content, tail, passed, today):
+    """After a placement quiz: concepts answered right first time are known, the rest go on the learning list."""
+    questions = content.get("questions") or []
+    tries = parse_trail(tail, questions)
+    by_concept = {}
+    for question, answers in zip(questions, tries):
+        name = question.get("concept")
+        if name:
+            by_concept.setdefault(name, []).append(len(answers) == 1)
+    if not tail:
+        return ["Only the short code was pasted, so nothing could be marked as known. Ask for the full copied code next time."]
+    concepts = read_json(state / "concepts.json")
+    known, learning = [], []
+    for name, firsts in by_concept.items():
+        slug = slugify(name)
+        entry = concepts.setdefault(slug, {"topic": name})
+        if all(firsts):
+            entry["status"] = "known"
+            passed[slug] = {"topic": name, "passed": today, "via": "placement"}
+            known.append(name)
+        else:
+            entry["status"] = entry.get("status") if entry.get("status") == "gate" else "learning"
+            learning.append(name)
+    write_json(state / "concepts.json", concepts)
+    return [f"Already known (no lesson needed): {', '.join(known) or 'none'}",
+            f"On the learning list: {', '.join(learning) or 'none'}"]
+
+
 def skip(state):
-    pending_file = state / "pending.json"
-    if not pending_file.exists():
+    pending_file, gated = in_progress(state)
+    if not pending_file:
         print("No quiz is pending, so there is nothing to skip. Gate: OPEN.")
         return 0
     quiz = read_json(pending_file)
     topic = quiz.get("topic", "the pending topic")
     pending_file.unlink()
+    if not gated:
+        print(f'Dropped the no-gate lesson on "{topic}". Gate: OPEN.')
+        return 0
     try:
         add_history(state, quiz, "skip")
     except OSError:
@@ -590,9 +661,51 @@ def skip(state):
     return 0
 
 
+def concepts_command(state, args):
+    """The project's concept list, filled in by a scan. Statuses: learning, known, gate."""
+    path = state / "concepts.json"
+    concepts = read_json(path)
+    if args.action == "add":
+        topic = " ".join(args.topic).strip()
+        slug = slugify(topic)
+        if not slug:
+            return fail('Use: concepts add "<topic>" [--group big_picture|tools|techniques] [--status learning|known|gate] [--weight N]')
+        entry = concepts.setdefault(slug, {"topic": topic, "status": "learning"})
+        entry["topic"] = topic
+        if args.group:
+            entry["group"] = args.group
+        if args.status:
+            entry["status"] = args.status
+        if args.weight is not None:
+            entry["weight"] = args.weight
+        write_json(path, concepts)
+        if entry["status"] == "known":
+            passed = read_json(state / "passed.json")
+            passed.setdefault(slug, {"topic": topic, "passed": date.today().isoformat(), "via": "marked known"})
+            write_json(state / "passed.json", passed)
+        print(f'Concept saved: "{topic}" ({entry.get("group", "no group")}, {entry["status"]})')
+        return 0
+    if args.action:
+        return fail('Use: concepts    or    concepts add "<topic>" [--group ...] [--status ...] [--weight N]')
+    if not concepts:
+        print("No concept list yet. A scan of the project creates one.")
+        return 0
+    about = {"learning": "on the learning list, never gates", "known": "known, no lesson needed", "gate": "gates when it comes up"}
+    for group in CONCEPT_GROUPS + [None]:
+        members = [c for c in concepts.values() if c.get("group") == group or (group is None and c.get("group") not in CONCEPT_GROUPS)]
+        if not members:
+            continue
+        print({"big_picture": "Big picture", "tools": "Tools", "techniques": "Techniques", None: "Other"}[group] + ":")
+        for concept in sorted(members, key=lambda c: -(c.get("weight") or 0)):
+            print(f"  - {concept.get('topic')}: {about.get(concept.get('status'), concept.get('status'))}")
+    return 0
+
+
 def status(state):
     print(f"Project: {state.parent}")
     pending_file = state / "pending.json"
+    if (state / "practice.json").exists() and not pending_file.exists():
+        print(f'No-gate lesson in progress: "{read_json(state / "practice.json").get("topic", "?")}".')
     if pending_file.exists():
         quiz = read_json(pending_file)
         built = "page built" if quiz.get("code_hash") else "content not built yet"
@@ -652,6 +765,7 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True, metavar="command")
     start_args = commands.add_parser("start", help="begin a Vibe Check on a topic (closes the gate)")
     start_args.add_argument("topic", nargs="+", help="the concept, for example: pandas groupby")
+    start_args.add_argument("--no-gate", action="store_true", help="a lesson that doesn't block edits")
     build_args = commands.add_parser("build", help="build the quiz page from the content and open it")
     build_args.add_argument("--no-open", action="store_true", help="don't open the browser")
     unlock_args = commands.add_parser("unlock", help="check a pass code (opens the gate if it matches)")
@@ -663,6 +777,12 @@ def main():
     config_args.add_argument("pair", nargs="*", help="KEY VALUE")
     config_args.add_argument("--global", dest="everywhere", action="store_true", help="save as the default for every project")
     commands.add_parser("topics", help="list what has been covered")
+    concept_args = commands.add_parser("concepts", help="this project's concept list, or: concepts add \"<topic>\"")
+    concept_args.add_argument("action", nargs="?", help="add")
+    concept_args.add_argument("topic", nargs="*")
+    concept_args.add_argument("--group", choices=CONCEPT_GROUPS)
+    concept_args.add_argument("--status", choices=CONCEPT_STATUSES)
+    concept_args.add_argument("--weight", type=int, help="how much of the code leans on it, 1 to 10")
     review_args = commands.add_parser("review", help="reopen a passed topic with no gate")
     review_args.add_argument("topic", nargs="+")
     review_args.add_argument("--no-open", action="store_true", help="don't open the browser")
@@ -670,7 +790,7 @@ def main():
 
     state = project_root() / STATE_DIR
     if args.command == "start":
-        return start(state, " ".join(args.topic).strip())
+        return start(state, " ".join(args.topic).strip(), gated=not args.no_gate)
     if args.command == "build":
         return build(state, not args.no_open)
     if args.command == "unlock":
@@ -681,6 +801,8 @@ def main():
         return config_command(state, args)
     if args.command == "topics":
         return topics(state)
+    if args.command == "concepts":
+        return concepts_command(state, args)
     if args.command == "review":
         return review(state, " ".join(args.topic), not args.no_open)
     return status(state)

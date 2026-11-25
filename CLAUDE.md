@@ -4,7 +4,7 @@
 Vibe Check is a Claude Code plugin. When Claude is about to build something that
 uses a concept new to the user, it stops, makes a quick HTML quiz
 (flashcards, then multiple choice), and **will not edit files until the user passes**.
-Tagline: *Learn as you vibe.*
+Tagline: *Learn as you vibe.* It's also a **review aid**: checking that your understanding matches what the code actually does is how bugs get caught.
 
 It's Patrick's own tool first. It should also work as a general plugin anyone can
 install from this repo, so keep anything specific to Patrick out of the plugin files.
@@ -85,7 +85,9 @@ project (AskUserQuestion), and changeable anytime with `/vibe-check:config` or b
   "lesson_cards": 4,            // 2–8
   "questions": 3,               // 1–10
   "pass_bar": "all",            // "all" or a number, e.g. 2 (of 3)
-  "trigger": "new_concepts"     // new_concepts | big_concepts_only | manual
+  "trigger": "new_concepts",    // new_concepts | big_concepts_only | manual
+  "tracks": ["domain","architecture","code"],  // which kinds of concepts get lessons and gates
+  "review": true                // ask expectation questions and flag mismatches as possible bugs
 }
 ```
 
@@ -101,6 +103,30 @@ Fun, animated, gamified. Not plain flashcards.
 - Reference prototypes, one per look (all teach the same groupby lesson):
   `prototypes/pandas-groupby-overkill.html` (`arcade`), `prototypes/pandas-groupby.html` (`classic`),
   `prototypes/pandas-groupby-nofrills.html` (`plain`). Step 3's templates generalize them.
+
+## Learning tracks: what kind of thing to learn
+Not everyone cares about the code. Someone building a portfolio risk platform needs to know how
+*the platform* works (how tracking error is computed, where benchmark weights come from, what
+happens when a price is missing) without learning how Python works. Every concept gets a track:
+- **Domain / logic:** what the system does in business terms (the risk math, the rules, the data flow).
+- **Architecture:** how the pieces fit together.
+- **Code:** the language, libraries and patterns.
+A `tracks` setting (e.g. `["domain","architecture"]`) picks which ones get lessons and gates.
+Lessons on the domain track explain *this project's* logic, not textbook theory.
+
+## Review mode: Vibe Check as a correctness check (big idea, Patrick's)
+The quiz doubles as a review: if the user's understanding and the code disagree, either the
+user learns something **or the code is wrong**. Design rules:
+- **Answer keys come from the code, not from Claude's beliefs.** For predict-the-output
+  questions, actually run the code on the example data to get the answer.
+- **Expectation questions:** ask what the user *expects* before revealing what the code does
+  ("weights should sum to 100%?", "is tracking error annualized?").
+- **"That's not what it should do" button** on every reveal. A mismatch the user disputes is
+  logged as a **possible bug**, not a missed question, and doesn't count against them. Claude
+  then checks the code against the user's expectation and reports back.
+- Review findings go in the history and show on the Learning Log ("2 possible issues found").
+- Suggested scope: v2, after the core gate/quiz/tracking loop works. The `domain` track and
+  expectation questions are the natural place to start.
 
 ## Starting late on an existing project (decided)
 1. **Scan → concept inventory.** Read imports, libraries, file types and patterns, then list the
@@ -138,8 +164,8 @@ Every Vibe Check is logged so the user can see what they've covered and go back 
 - [x] **1. Gate hook:** write `scripts/gate.py`. It reads the hook's JSON on stdin; if `.vibe-check/pending.json` exists and the target file isn't inside `.vibe-check/`, it exits 2 with a clear message for Claude. Otherwise it exits 0. Test it by piping sample JSON into it.
 - [x] **2. CLI:** write `scripts/vc.py` with the start / unlock / skip / status commands, using only the standard library.
 - [x] **3. Quiz template:** `templates/quiz.html` as one file with no CDN, so it works on locked-down machines. **Lesson (click-through cards, tiny example, predict-the-output)** → MCQ → retry misses → reveal the pass code. Lengths come from the config. Mobile-friendly.
-- [ ] **4. Skill:** finish `skills/vibe-check/SKILL.md`: when to trigger, how to write good questions (teach before you test; prediction over definitions; respect config for level and counts; first-run setup questions), the step-by-step flow.
-- [ ] **5. Slash commands:** `/vibe-check:skip`, `/vibe-check:status`, `/vibe-check:config`. `vc.py` reads and writes the config.
+- [x] **4. Skill:** finish `skills/vibe-check/SKILL.md`: when to trigger, how to write good questions (teach before you test; prediction over definitions; respect config for level and counts; first-run setup questions), the step-by-step flow.
+- [x] **5. Slash commands:** `/vibe-check:skip`, `/vibe-check:status`, `/vibe-check:config`. `vc.py` reads and writes the config.
 - [ ] **6. Test it:** install the plugin locally and use it in `examples/pandas-playground` (for example, "load a CSV into a DataFrame and group by a column"). Fix whatever feels annoying.
 - [ ] **7. README + release:** install steps, a GIF/screenshot, tag v0.1.0.
 

@@ -117,6 +117,7 @@ button{font:inherit;cursor:pointer;color:inherit}
 .stat{background:var(--deep);border:1px solid var(--line);border-radius:12px;padding:10px 6px}
 .stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.stat small{color:var(--muted);font-size:12px}
 .code{font:800 clamp(22px,6.5vw,32px) ui-monospace,Menlo,monospace;letter-spacing:.12em;background:var(--deep);border:2px dashed var(--accent);border-radius:12px;padding:12px 20px;display:inline-block;margin:10px 0}
+.deeper{margin-top:14px}.deeper .fb{border:1px solid var(--line);background:var(--deep)}
 .note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px}
 .vee,.levelup,.combo,.arcade-only{display:none}
 
@@ -381,7 +382,7 @@ function splash(){
   enter();progress(0);
   $('#main').innerHTML=`<div class="splash">
     <div class="big">${[...'Vibe'].map((c,i)=>`<b style="animation-delay:${i*70}ms">${c}</b>`).join('')}<span>${[...'Check'].map((c,i)=>`<b style="animation-delay:${(i+4)*70}ms">${c}</b>`).join('')}</span></div>
-    <p class="muted" style="margin-top:18px">${D.review?'A review of':'Before Claude writes this code, a quick one on'}</p>
+    <p class="muted" style="margin-top:18px">${D.review?'A review of':D.gate===false?'No gate on this one. A lesson on':'Before Claude writes this code, a quick one on'}</p>
     <div class="topic">${esc(D.topic)}</div>
     <div class="row"><button class="btn glow" id="s1" data-enter>Start with sound 🔊</button><button class="btn ghost" id="s0">Start quiet</button></div>
     <p class="muted small" style="margin-top:22px">${LESSON.length?LESSON.length+' lesson '+(LESSON.length===1?'scene':'scenes')+', ':''}${QN} ${QN===1?'question':'questions'}${D.review?'':', 1 pass code'}</p></div>`;
@@ -392,8 +393,17 @@ function splash(){
 
 function renderScene(i){
   const s=LESSON[i];
-  try{({story,steps,playground,card,custom})[s.type](s,i)}
+  try{({story,steps,playground,card,custom})[s.type](s,i);deeper(s)}
   catch(err){console.error('Vibe Check scene failed',err);if(s.fallback){LESSON[i]=s.fallback;renderScene(i)}else h(tagOf(i,s)+'<p class="muted">This scene could not be shown.</p>'+navOf(i))}
+}
+
+// "Go deeper": one level more detail than the lesson's depth, for people who want it.
+function deeper(s){
+  const nav=$('.card .nav');if(!s.deeper||!nav)return;
+  const box=document.createElement('div');box.className='deeper';
+  box.innerHTML=`<button class="pill" id="deeperBtn" aria-expanded="false">Go deeper</button><div class="fb" id="deeperTxt" hidden>${fmt(s.deeper)}</div>`;
+  nav.before(box);
+  $('#deeperBtn').onclick=()=>{const t=$('#deeperTxt');t.hidden=!t.hidden;$('#deeperBtn').setAttribute('aria-expanded',!t.hidden);$('#deeperBtn').textContent=t.hidden?'Go deeper':'Hide the detail';sfx.click()};
 }
 
 async function story(s,i){
@@ -531,7 +541,7 @@ async function win(){
   const my=enter();progress(TOTAL);
   const code=VC.passCode(),badge=esc(D.badge||'🧩');
   const inside=`<div class="center">
-      <div class="tag">${D.review?'Review complete':'Vibe Check passed'}</div>
+      <div class="tag">${D.review?'Review complete':D.gate===false?'Lesson complete':'Vibe Check passed'}</div>
       <div class="${A?'coin':'badge'}">${badge}</div>
       <h2>${D.review?'':'Badge unlocked: '}<code>${esc(D.topic)}</code></h2>
       <div class="statrow">
@@ -539,7 +549,7 @@ async function win(){
         <div class="stat"><b>${quiz.firstTry()}/${QN}</b><small>first try</small></div>
         <div class="stat"><b>${A?'x'+Math.max(1,best):quiz.right.size+'/'+QN}</b><small>${A?'best combo':'correct'}</small></div>
       </div>
-      ${D.review?'<p>Nothing to paste. You can close this page.</p>':`<p>Copy this code and paste it into Claude Code to unlock the build:</p>
+      ${D.review?'<p>Nothing to paste. You can close this page.</p>':`<p>Copy this code and paste it into Claude Code to ${D.gate===false?'save this to your Learning Log':'unlock the build'}:</p>
       <div class="code" id="code" aria-label="Pass code">${A?'•••••••••':esc(code)}</div><br>`}
       <div class="row">${D.review?'':`<button class="btn${A?' glow':''}" id="copy" data-enter>Copy code</button>`}<button class="btn ghost" id="replay">Replay</button></div>
       ${D.review?'':'<p class="muted small">Copy includes a short record of your answers for your Learning Log.</p>'}
@@ -553,7 +563,7 @@ async function win(){
   const v=$('.vault');
   await wait(350);if(my!==scene)return;v.classList.add('unlock');sfx.crush();
   await wait(650);if(my!==scene)return;v.classList.add('open');sfx.level();reward();
-  say(D.review?'Nicely revised.':'Gate\'s open. Go paste that code.','happy',6000);
+  say(D.review?'Nicely revised.':D.gate===false?'Done. Paste the code to log it.':'Gate\'s open. Go paste that code.','happy',6000);
   if(!calm){let n=0;const fw=setInterval(()=>{if(my!==scene||++n>11)return clearInterval(fw);burst(W*(.15+Math.random()*.7),H*(.12+Math.random()*.4),60,9)},380)}
   const el=$('#code');if(!el)return;
   if(calm){el.textContent=code;return}

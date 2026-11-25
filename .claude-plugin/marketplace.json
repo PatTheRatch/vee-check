@@ -1,6 +1,9 @@
 {
   "name": "vibe-check",
-  "owner": { "name": "Patrick McDowell" },
+  "description": "Vibe Check: pass a quick lesson and quiz before Claude Code writes the code.",
+  "owner": {
+    "name": "Patrick McDowell"
+  },
   "plugins": [
     {
       "name": "vibe-check",

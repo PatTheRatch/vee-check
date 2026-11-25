@@ -72,6 +72,7 @@
     {
       "type": "playground",
       "title": "Change it up and watch the result",
+      "deeper": "`groupby` on its own doesn't calculate anything. It returns a lazy GroupBy object that just remembers how to split the rows. The work happens when you ask for `.sum()`, `.mean()` and so on, which is why you can reuse one grouping for several calculations.",
       "controls": [
         { "name": "group by", "label": "group by ", "options": ["region", "sector"] },
         { "name": "function", "options": ["sum", "mean", "count", "max"] }
