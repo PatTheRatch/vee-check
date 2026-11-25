@@ -1,12 +1,12 @@
 {
-  "name": "vibe-check",
-  "description": "Vibe Check: pass a quick lesson and quiz before Claude Code writes the code.",
+  "name": "vee-check",
+  "description": "Vee Check: pass a quick lesson and quiz before Claude Code writes the code.",
   "owner": {
     "name": "Patrick McDowell"
   },
   "plugins": [
     {
-      "name": "vibe-check",
+      "name": "vee-check",
       "source": "./",
       "description": "Pass a quick quiz before Claude Code writes the code. Learn as you vibe."
     }

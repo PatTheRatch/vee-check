@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Vibe Check gate (PreToolUse hook).
+"""Vee Check gate (PreToolUse hook).
 
 Claude Code runs this before every Edit / Write / MultiEdit / NotebookEdit and
 pipes the tool call in as JSON on stdin. While a quiz is pending
-(.vibe-check/pending.json exists), only files inside .vibe-check/ may be written.
+(.vee-check/pending.json exists), only files inside .vee-check/ may be written.
 
 Exit codes:
   0  allow the edit
@@ -19,7 +19,7 @@ import os
 import sys
 from pathlib import Path
 
-STATE_DIR = ".vibe-check"
+STATE_DIR = ".vee-check"
 ALLOW = 0
 BLOCK = 2
 
@@ -34,7 +34,7 @@ def read_hook_input():
 
 
 def project_root(hook):
-    """The user's project folder, which is where .vibe-check/ lives."""
+    """The user's project folder, which is where .vee-check/ lives."""
     return Path(os.environ.get("CLAUDE_PROJECT_DIR") or hook.get("cwd") or os.getcwd())
 
 
@@ -69,7 +69,7 @@ def block_message(pending):
     quiz = f'the "{topic}" quiz' if topic else "the pending quiz"
     vc = Path(__file__).with_name("vc.py")
     return (
-        f"Vibe Check: edit blocked. The user hasn't passed {quiz} yet.\n"
+        f"Vee Check: edit blocked. The user hasn't passed {quiz} yet.\n"
         "Don't edit project files or work around this another way (for example with Bash).\n"
         "Ask the user to finish the quiz in their browser and paste the pass code, then run:\n"
         f'  python3 "{vc}" unlock <code>\n'
@@ -82,7 +82,7 @@ def crash_message(error):
     """What Claude reads when the gate itself breaks while a quiz is pending."""
     vc = Path(__file__).with_name("vc.py")
     return (
-        f"Vibe Check: the gate hit an error ({error!r}) while a quiz is pending, "
+        f"Vee Check: the gate hit an error ({error!r}) while a quiz is pending, "
         "so the edit is blocked to be safe.\n"
         "Tell the user the gate is broken and show them this error. "
         "If they say to skip the quiz, run:\n"

@@ -1,9 +1,9 @@
 ---
-description: Show or change Vibe Check settings
+description: Show or change Vee Check settings
 argument-hint: [setting value] [--global]
 ---
 
-The user wants to see or change their Vibe Check settings. What they typed: $ARGUMENTS
+The user wants to see or change their Vee Check settings. What they typed: $ARGUMENTS
 
 - If they typed nothing, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/vc.py" config` and show the settings as a short list, each with its current value and what it does.
 - If they named a setting and a value (in any wording, such as "plain look", "fewer questions", "make it easier"), work out the matching setting and run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/vc.py" config set <key> <value>`. Add `--global` only if they asked for it to apply to every project.

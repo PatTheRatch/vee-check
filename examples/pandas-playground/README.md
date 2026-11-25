@@ -1,9 +1,9 @@
 # pandas playground
 
-A scratch project for trying Vibe Check.
+A scratch project for trying Vee Check.
 
 - `holdings.csv`: six rows of sample data.
-- `quiz-example/`: a complete, hand-checked Vibe Check on pandas groupby. It is the worked
+- `quiz-example/`: a complete, hand-checked Vee Check on pandas groupby. It is the worked
   example the skill points Claude at: the quiz content (`pandas-groupby.json`) and the
   custom scene used by the arcade look (`pandas-groupby.scene.html`, `pandas-groupby.scene.js`).
 
@@ -20,7 +20,7 @@ python3 ../../scripts/vc.py start "pandas groupby"
 ```
 
 ```bash
-cp quiz-example/* .vibe-check/quizzes/
+cp quiz-example/* .vee-check/quizzes/
 ```
 
 ```bash

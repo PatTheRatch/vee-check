@@ -1,7 +1,7 @@
 """Tests for the gate and the CLI. Standard library only.
 
 Run from the repo root:  python3 -m unittest discover -s tests -v
-Nothing here touches your real ~/.vibe-check: every test gets its own folders.
+Nothing here touches your real ~/.vee-check: every test gets its own folders.
 """
 import base64
 import json
@@ -27,7 +27,7 @@ class Base(unittest.TestCase):
         self.home = self.tmp / "home"
         self.project.mkdir()
         self.addCleanup(shutil.rmtree, self.tmp, True)
-        self.env = {**os.environ, "VIBE_CHECK_HOME": str(self.home), "VIBE_CHECK_NO_OPEN": "1"}
+        self.env = {**os.environ, "VEE_CHECK_HOME": str(self.home), "VEE_CHECK_NO_OPEN": "1"}
         self.env.pop("CLAUDE_PROJECT_DIR", None)
 
     def vc(self, *args, cwd=None):
@@ -43,13 +43,13 @@ class Base(unittest.TestCase):
         return done.returncode, done.stderr
 
     def write_example(self, slug="pandas-groupby"):
-        quizzes = self.project / ".vibe-check" / "quizzes"
+        quizzes = self.project / ".vee-check" / "quizzes"
         quizzes.mkdir(parents=True, exist_ok=True)
         for source in EXAMPLE.iterdir():
             shutil.copy(source, quizzes / source.name.replace("pandas-groupby", slug))
 
     def page_data(self, slug="pandas-groupby"):
-        page = (self.project / ".vibe-check" / "quizzes" / f"{slug}.html").read_text(encoding="utf-8")
+        page = (self.project / ".vee-check" / "quizzes" / f"{slug}.html").read_text(encoding="utf-8")
         block = re.search(r'<script id="vc-data" type="application/json">(.*?)</script>', page, re.S).group(1)
         return json.loads(block), page
 
@@ -64,7 +64,7 @@ class Base(unittest.TestCase):
 
 class GateTests(Base):
     def pend(self):
-        state = self.project / ".vibe-check"
+        state = self.project / ".vee-check"
         state.mkdir(exist_ok=True)
         (state / "pending.json").write_text(json.dumps({"topic": "pandas groupby"}))
 
@@ -81,13 +81,13 @@ class GateTests(Base):
 
     def test_allows_files_inside_the_state_folder(self):
         self.pend()
-        self.assertEqual(self.gate(self.project / ".vibe-check" / "quizzes" / "a.json")[0], 0)
-        self.assertEqual(self.gate(".vibe-check/quizzes/a.html")[0], 0)
+        self.assertEqual(self.gate(self.project / ".vee-check" / "quizzes" / "a.json")[0], 0)
+        self.assertEqual(self.gate(".vee-check/quizzes/a.html")[0], 0)
 
     def test_lookalike_folder_and_climbing_out_are_blocked(self):
         self.pend()
-        self.assertEqual(self.gate(self.project / ".vibe-check-notes" / "x.py")[0], 2)
-        self.assertEqual(self.gate(f"{self.project}/.vibe-check/../app.py")[0], 2)
+        self.assertEqual(self.gate(self.project / ".vee-check-notes" / "x.py")[0], 2)
+        self.assertEqual(self.gate(f"{self.project}/.vee-check/../app.py")[0], 2)
 
     def test_unreadable_input_blocks_only_while_pending(self):
         self.assertEqual(self.gate(None, stdin="not json")[0], 0)
@@ -101,7 +101,7 @@ class CliTests(Base):
         code = self.start_and_build()
         self.assertRegex(code, r"^[A-Z2-9]{4}-[A-Z2-9]{4}$")
         self.assertEqual(self.gate(self.project / "app.py")[0], 2)
-        pending = json.loads((self.project / ".vibe-check" / "pending.json").read_text())
+        pending = json.loads((self.project / ".vee-check" / "pending.json").read_text())
         self.assertNotIn(code, json.dumps(pending))            # only the fingerprint is stored
         self.assertEqual(self.vc("unlock", "AAAA-BBBB")[0], 1)
         self.assertEqual(self.gate(self.project / "app.py")[0], 2)
@@ -127,7 +127,7 @@ class CliTests(Base):
         self.vc("start", "groupby")
         self.assertEqual(self.vc("skip")[0], 0)
         self.assertEqual(self.gate(self.project / "app.py")[0], 0)
-        self.assertIn("Vibe Check started", self.vc("start", "groupby")[1])
+        self.assertIn("Vee Check started", self.vc("start", "groupby")[1])
 
     def test_one_quiz_at_a_time_and_unlock_needs_a_built_page(self):
         self.vc("start", "groupby")
@@ -140,7 +140,7 @@ class CliTests(Base):
     def test_build_reports_bad_content(self):
         self.vc("start", "pandas groupby")
         bad = {"lesson": [{"type": "card", "title": "x"}], "questions": [{"type": "choice", "prompt": "p", "why": "w", "options": ["a", "b"], "answer": 5}]}
-        quizzes = self.project / ".vibe-check" / "quizzes"
+        quizzes = self.project / ".vee-check" / "quizzes"
         (quizzes / "pandas-groupby.json").write_text(json.dumps(bad))
         code, out = self.vc("build")
         self.assertEqual(code, 1)
@@ -220,7 +220,7 @@ class CliTests(Base):
         question = lambda concept: {"type": "choice", "concept": concept, "prompt": "p", "why": "w", "options": ["a", "b"], "answer": 0}
         content = {"placement": True, "lesson": [], "questions": [question("Flask routes"), question("Flask routes"),
                                                                    question("pandas groupby"), question("pandas groupby")]}
-        quizzes = self.project / ".vibe-check" / "quizzes"
+        quizzes = self.project / ".vee-check" / "quizzes"
         (quizzes / "placement-quiz.json").write_text(json.dumps(content))
         self.assertEqual(self.vc("build")[0], 0)
         data, _ = self.page_data("placement-quiz")
@@ -241,7 +241,7 @@ class CliTests(Base):
             with self.subTest(look=look):
                 self.vc("config", "set", "look", look)
                 self.vc("start", "template tour")
-                shutil.copy(tour, self.project / ".vibe-check" / "quizzes" / "template-tour.json")
+                shutil.copy(tour, self.project / ".vee-check" / "quizzes" / "template-tour.json")
                 code, out = self.vc("build")
                 self.assertEqual(code, 0, out)
                 data, _ = self.page_data("template-tour")
@@ -257,7 +257,7 @@ class CliTests(Base):
             {"type": "build", "title": "t", "pieces": ["only one"]}],
             "questions": [{"type": "fill", "prompt": "p", "why": "w", "code": "no blank here", "options": ["a", "b"], "answer": 0},
                           {"type": "bug", "prompt": "p", "why": "w", "lines": ["a", "b"], "answer": 7}]}
-        (self.project / ".vibe-check" / "quizzes" / "bad-templates.json").write_text(json.dumps(bad))
+        (self.project / ".vee-check" / "quizzes" / "bad-templates.json").write_text(json.dumps(bad))
         code, out = self.vc("build")
         self.assertEqual(code, 1)
         for expected in ("2 different groups", '"at"', '"pieces"', "___", "line with the bug"):
@@ -267,7 +267,7 @@ class CliTests(Base):
         tour = REPO / "examples" / "pandas-playground" / "quiz-example-templates" / "template-tour.json"
         self.vc("config", "set", "lesson_cards", "6")
         self.vc("start", "template tour")
-        shutil.copy(tour, self.project / ".vibe-check" / "quizzes" / "template-tour.json")
+        shutil.copy(tour, self.project / ".vee-check" / "quizzes" / "template-tour.json")
         self.vc("build")
         data, _ = self.page_data("template-tour")
         code = base64.b64decode(data["code"]).decode()
@@ -299,7 +299,7 @@ class CliTests(Base):
             {"type": "expect", "prompt": "Is tracking error annualized here?", "source": "risk.py:42",
              "options": ["Yes, times sqrt(252)", "No, it is daily"], "answer": 1, "why": "risk.py returns the daily figure."},
             {"type": "choice", "prompt": "p", "options": ["a", "b"], "answer": 0, "why": "w"}]}
-        (self.project / ".vibe-check" / "quizzes" / "tracking-error.json").write_text(json.dumps(content))
+        (self.project / ".vee-check" / "quizzes" / "tracking-error.json").write_text(json.dumps(content))
         self.assertEqual(self.vc("build")[0], 0)
         data, _ = self.page_data("tracking-error")
         self.assertEqual(data["track"], "domain")

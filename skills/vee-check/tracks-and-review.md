@@ -38,7 +38,7 @@ in SKILL.md). It explains what `portfolio.py` computes without teaching any pand
 
 ## Review mode: the quiz as a check on the code
 
-A Vibe Check can find bugs. If the user's understanding and the code disagree, either the
+A Vee Check can find bugs. If the user's understanding and the code disagree, either the
 user learns something **or the code is wrong**. Three rules make that work.
 
 ### 1. Answer keys come from the code, not from what you believe

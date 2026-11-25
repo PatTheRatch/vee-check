@@ -1,4 +1,4 @@
-// Vibe Check core: shared by every look. build stamps this into the page.
+// Vee Check core: shared by every look. build stamps this into the page.
 // It owns the parts that must never break: reading the quiz data, the quiz
 // rules (retry misses, pass bar), the pass code and the answer trail.
 const VC = (() => {

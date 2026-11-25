@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vibe Check</title>
+<title>Vee Check</title>
 <style>
 :root{color-scheme:light dark}
 body{max-width:40rem;margin:0 auto;padding:1.5rem 1rem 4rem;font:1rem/1.55 system-ui,sans-serif}
@@ -29,14 +29,14 @@ details{margin:.5rem 0}
 </style>
 </head>
 <body>
-<main id="main"><p>This page has no quiz in it. It is the Vibe Check template; <code>vc.py build</code> fills it in.</p></main>
+<main id="main"><p>This page has no quiz in it. It is the Vee Check template; <code>vc.py build</code> fills it in.</p></main>
 <script id="vc-data" type="application/json">__VC_DATA__</script>
 <script>
 /*__VC_CORE__*/
 (() => {
   const D = VC.data; if (!D) return;
   const { fmt, esc, code } = VC, quiz = new VC.Quiz(), main = document.getElementById('main');
-  document.title = 'Vibe Check: ' + D.topic;
+  document.title = 'Vee Check: ' + D.topic;
   const table = t => !t ? '' : `<div class="wide"><table><tr>${(t.columns || []).map(c => `<th>${esc(c)}</th>`).join('')}</tr>${(t.rows || []).map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
   const pre = c => c ? `<pre>${code(c)}</pre>` : '';
 
@@ -80,7 +80,7 @@ details{margin:.5rem 0}
   }
 
   const n = quiz.qs.length, bar = quiz.need === n ? `all ${n === 1 ? 'of it' : n}` : `${quiz.need} of ${n}`;
-  main.innerHTML = `<h1>Vibe Check: ${esc(D.topic)}</h1>
+  main.innerHTML = `<h1>Vee Check: ${esc(D.topic)}</h1>
     <p>${D.lesson.length ? 'Read the lesson, then answer' : 'Answer'} ${n === 1 ? 'the question' : `the ${n} questions`}. ${D.review ? 'This is a review, so there is no pass code.' : `Get ${bar} right to see your pass code.`}</p>
     ${D.lesson.length ? '<h2>Lesson</h2>' + D.lesson.map((s, i) => scene(s, i + 1)).join('') : ''}
     <h2>Questions</h2>

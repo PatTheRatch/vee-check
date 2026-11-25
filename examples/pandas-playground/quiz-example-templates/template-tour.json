@@ -48,7 +48,7 @@
         { "at": 1, "text": "Before anything is written, Claude Code hands the request to the hook.", "value": "{ \"tool_name\": \"Edit\", \"file_path\": \"app.py\" }" },
         { "at": 2, "text": "The hook asks one question: does the lock file exist? A quiz is pending, so it does.", "value": "pending.json exists" },
         { "at": 1, "text": "So the hook exits with code **2**. That means block, and tell Claude why.", "value": "exit 2" },
-        { "at": 0, "text": "Claude gets the message and waits for your pass code. `app.py` was never touched.", "value": "Vibe Check: edit blocked" }
+        { "at": 0, "text": "Claude gets the message and waits for your pass code. `app.py` was never touched.", "value": "Vee Check: edit blocked" }
       ]
     },
     {

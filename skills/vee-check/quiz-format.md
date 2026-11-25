@@ -1,7 +1,7 @@
 # Quiz content format
 
-You write one JSON file per Vibe Check. `start` prints the exact path
-(`.vibe-check/quizzes/<topic>.json`). `build` checks it, tells you what to fix, and turns it
+You write one JSON file per Vee Check. `start` prints the exact path
+(`.vee-check/quizzes/<topic>.json`). `build` checks it, tells you what to fix, and turns it
 into the page. A complete worked example ships with the plugin; SKILL.md gives its path.
 
 ```json

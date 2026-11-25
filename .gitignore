@@ -1,5 +1,6 @@
-.vibe-check/
+.vee-check/
 __pycache__/
 *.pyc
 .DS_Store
 .venv/
+.vibe-check/

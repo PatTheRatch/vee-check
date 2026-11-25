@@ -1,5 +1,5 @@
 {
-  "name": "vibe-check",
+  "name": "vee-check",
   "version": "0.1.0",
   "description": "Pass a quick quiz before Claude Code writes the code. Learn as you vibe.",
   "author": {

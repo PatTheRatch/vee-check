@@ -1,5 +1,5 @@
 ---
-description: Show the Vibe Check gate, settings and what has been passed
+description: Show the Vee Check gate, settings and what has been passed
 ---
 
 Run:

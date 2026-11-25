@@ -1,8 +1,8 @@
 # Starting on a project that already has code
 
-When Vibe Check is switched on in a project that already has code, the user hasn't been
+When Vee Check is switched on in a project that already has code, the user hasn't been
 quizzed on any of it. Don't gate them on their own existing code. Do this instead, once,
-when they ask for a scan or the first time a Vibe Check would start in a project that has
+when they ask for a scan or the first time a Vee Check would start in a project that has
 code but no concept list (`vc.py concepts` says "No concept list yet").
 
 In every command below, `vc.py` means the script path given in SKILL.md.

@@ -1,8 +1,8 @@
 ---
-description: Skip the pending Vibe Check quiz and open the gate
+description: Skip the pending Vee Check quiz and open the gate
 ---
 
-The user wants to skip the pending Vibe Check on purpose.
+The user wants to skip the pending Vee Check on purpose.
 
 Run:
 

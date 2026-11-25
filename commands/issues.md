@@ -1,5 +1,5 @@
 ---
-description: List the possible bugs you flagged during Vibe Checks in this project
+description: List the possible bugs you flagged during Vee Checks in this project
 ---
 
 Run:

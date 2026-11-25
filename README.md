@@ -1,9 +1,9 @@
-# Vibe Check ✅
+# Vee Check ✅
 
 **A Claude Code plugin that makes you pass a quick lesson and quiz before the code gets written. Learn as you vibe.**
 
 Vibe coding is fun, but the code shows up and you never really learn what it does.
-Vibe Check fixes that: when Claude Code is about to use a concept that's new to you, it opens a
+Vee Check fixes that: when Claude Code is about to use a concept that's new to you, it opens a
 short lesson and quiz in your browser. **No passing, no code.**
 
 ![The arcade look: sorting holdings into region piles to learn pandas groupby](docs/arcade.jpg)
@@ -16,21 +16,21 @@ short lesson and quiz in your browser. **No passing, no code.**
 4. You copy the pass code from the last screen, paste it into Claude Code, and it gets to work.
 5. Concepts you've passed are remembered and never quizzed again.
 
-Need to just ship? Type `/vibe-check:skip`. It's your tool. A skipped concept comes back next time.
+Need to just ship? Type `/vee-check:skip`. It's your tool. A skipped concept comes back next time.
 
 ## Install
 
 In Claude Code:
 
 ```
-/plugin install vibe-check --marketplace PatTheRatch/vibe-check
+/plugin install vee-check --marketplace PatTheRatch/vibe-check
 ```
 
 On versions before 2.1.275, do it in two steps:
 
 ```
 /plugin marketplace add PatTheRatch/vibe-check
-/plugin install vibe-check@vibe-check
+/plugin install vee-check@vee-check
 ```
 
 It needs Python 3.9 or later on your PATH as `python3`. Nothing else: no packages, no
@@ -40,7 +40,7 @@ The first time it runs in a project it asks four quick questions (look, tracks, 
 
 ## Three looks
 
-Same lesson and questions in each. Pick one with `/vibe-check:config look <name>`.
+Same lesson and questions in each. Pick one with `/vee-check:config look <name>`.
 
 | Look | What you get | Cost |
 |---|---|---|
@@ -53,7 +53,7 @@ Same lesson and questions in each. Pick one with `/vibe-check:config look <name>
 <img src="docs/plain.jpg" alt="The plain look" width="48%">
 </p>
 
-**About token use:** every Vibe Check adds a lesson's worth of work to your task, because
+**About token use:** every Vee Check adds a lesson's worth of work to your task, because
 Claude writes the lesson for your topic. `arcade` adds the most, since it also writes a small
 interactive scene. If usage matters, use `plain`, or set `trigger` to `big_concepts_only`.
 
@@ -85,7 +85,7 @@ choose which ones you get lessons on:
 | `architecture` | How the pieces fit together |
 | `code` | The language, libraries and patterns |
 
-`/vibe-check:config tracks domain,architecture` turns the code lessons off.
+`/vee-check:config tracks domain,architecture` turns the code lessons off.
 
 ## A quiz that can find bugs
 
@@ -95,27 +95,27 @@ blank weight stop the script?"). If the reveal isn't what it should do, press
 issue, and Claude checks the code against your expectation and reports back. Either you
 learn something or the code is wrong.
 
-`/vibe-check:check <area>` runs one of these reviews on purpose, with no gate.
+`/vee-check:check <area>` runs one of these reviews on purpose, with no gate.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/vibe-check:status` | The gate, your level and streak, what you've passed here |
-| `/vibe-check:skip` | Skip the pending quiz, on purpose |
-| `/vibe-check:config` | Show settings, or change one: `/vibe-check:config fewer questions` |
-| `/vibe-check:topics` | Everything you've covered, with a link to your Learning Log |
-| `/vibe-check:review <topic>` | Replay a passed lesson and quiz, with no gate |
-| `/vibe-check:scan` | For a project that already has code: list the concepts it uses |
-| `/vibe-check:tour` | A guided lesson on how the whole project fits together |
-| `/vibe-check:check <area>` | Review part of the code as a quiz on what you expect it to do |
-| `/vibe-check:issues` | The possible bugs you flagged during quizzes |
+| `/vee-check:status` | The gate, your level and streak, what you've passed here |
+| `/vee-check:skip` | Skip the pending quiz, on purpose |
+| `/vee-check:config` | Show settings, or change one: `/vee-check:config fewer questions` |
+| `/vee-check:topics` | Everything you've covered, with a link to your Learning Log |
+| `/vee-check:review <topic>` | Replay a passed lesson and quiz, with no gate |
+| `/vee-check:scan` | For a project that already has code: list the concepts it uses |
+| `/vee-check:tour` | A guided lesson on how the whole project fits together |
+| `/vee-check:check <area>` | Review part of the code as a quiz on what you expect it to do |
+| `/vee-check:issues` | The possible bugs you flagged during quizzes |
 
 You can also just say it: "teach me decorators", "make it easier", "what have we covered?".
 
 ## Settings
 
-Saved per project in `.vibe-check/config.json`. Add `--global` to make one your default everywhere.
+Saved per project in `.vee-check/config.json`. Add `--global` to make one your default everywhere.
 
 | Setting | Values | What it does |
 |---|---|---|
@@ -128,12 +128,12 @@ Saved per project in `.vibe-check/config.json`. Add `--global` to make one your 
 | `lesson_cards` | 2 to 8 | How many lesson scenes |
 | `questions` | 1 to 10 | How many questions |
 | `pass_bar` | `all`, or a number | How many must be right |
-| `trigger` | `new_concepts`, `big_concepts_only`, `manual` | When a Vibe Check starts |
+| `trigger` | `new_concepts`, `big_concepts_only`, `manual` | When a Vee Check starts |
 
 ## Your Learning Log
 
-Every Vibe Check is recorded in `~/.vibe-check/history.jsonl` on your own machine: the lesson,
-each question, what you answered and how many tries it took. `~/.vibe-check/log.html` is a
+Every Vee Check is recorded in `~/.vee-check/history.jsonl` on your own machine: the lesson,
+each question, what you answered and how many tries it took. `~/.vee-check/log.html` is a
 page listing it all, with a Review link per topic. XP, level and streak are worked out from
 that history. Nothing is sent anywhere.
 
@@ -145,8 +145,8 @@ that history. Nothing is sent anywhere.
   in the shell are not blocked in this version, so the skill tells Claude not to use them
   as a way around.
 - **If the gate itself breaks** while a quiz is pending, it stays closed and says so, and
-  `/vibe-check:skip` still opens it. With no quiz pending it never blocks anything.
-- Add `.vibe-check/` to your project's `.gitignore`.
+  `/vee-check:skip` still opens it. With no quiz pending it never blocks anything.
+- Add `.vee-check/` to your project's `.gitignore`.
 
 ## Develop
 
@@ -159,7 +159,7 @@ claude --plugin-dir .
 ```
 
 The pieces: `scripts/gate.py` (the hook), `scripts/vc.py` (the CLI Claude runs),
-`templates/` (the page looks), `skills/vibe-check/` (what tells Claude when and how),
+`templates/` (the page looks), `skills/vee-check/` (what tells Claude when and how),
 `commands/` (the slash commands), `examples/pandas-playground/` (a worked example).
 
 ## License

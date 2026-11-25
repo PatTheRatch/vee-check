@@ -1,9 +1,9 @@
 ---
-name: vibe-check
-description: Before writing code that uses a concept the user hasn't learned yet, run a Vibe Check, a short browser lesson and quiz the user must pass before any file edits. Use at the start of any coding task that introduces a new library, pattern, data structure, language feature, tool, business rule or calculation to this project, and when the user says "teach me X", "vibe check", "what have we covered", "review X", "check this code with me", "scan this project", "make it easier", "fewer questions" or asks to skip a quiz.
+name: vee-check
+description: Before writing code that uses a concept the user hasn't learned yet, run a Vee Check, a short browser lesson and quiz the user must pass before any file edits. Use at the start of any coding task that introduces a new library, pattern, data structure, language feature, tool, business rule or calculation to this project, and when the user says "teach me X", "vee check", "what have we covered", "review X", "check this code with me", "scan this project", "make it easier", "fewer questions" or asks to skip a quiz.
 ---
 
-# Vibe Check
+# Vee Check
 
 Vibe coding is fast, but the code shows up and the user never learns what it does. A Vibe
 Check fixes that: before you write code that uses a concept new to the user, they take a
@@ -28,7 +28,7 @@ there**. "Python" is too big. "f-strings" is too small. "pandas groupby", "Flask
 Run `vc status` first. It shows the settings, what has been passed here, and whether the
 project has a concept list. Then follow the `trigger` setting:
 
-| `trigger` | Run a Vibe Check when |
+| `trigger` | Run a Vee Check when |
 |---|---|
 | `new_concepts` (default) | the task uses a concept that is new to this project and not yet passed |
 | `big_concepts_only` | only for concepts the whole task hinges on, not small helpers |
@@ -38,11 +38,11 @@ Don't run one for a concept that is already passed, for a pure bug fix or rename
 introduces nothing new, or for code the project already contains (see "Projects that
 already have code").
 
-**One Vibe Check per task.** If a task needs more than one new concept, quiz the one the
+**One Vee Check per task.** If a task needs more than one new concept, quiz the one the
 task hinges on (the one the user would most need to explain afterwards), and fold a small
 prerequisite into its lesson as one `card` scene. For "load a CSV and total it by region",
-that means a Vibe Check on `groupby` with one card on what a DataFrame is. Only run a
-second Vibe Check in the same task when the second concept is as big as the first.
+that means a Vee Check on `groupby` with one card on what a DataFrame is. Only run a
+second Vee Check in the same task when the second concept is as big as the first.
 
 ## The flow
 
@@ -57,10 +57,10 @@ second Vibe Check in the same task when the second concept is as big as the firs
 3. **Write the content.** One JSON file at the path `start` printed. The format, with
    examples, is in [quiz-format.md](quiz-format.md). Follow the settings: `lesson_cards`
    scenes in total (a custom scene counts as one), `questions` questions, pitched at `level`
-   and `zoom`. Writing inside `.vibe-check/` is always allowed, with any tool.
+   and `zoom`. Writing inside `.vee-check/` is always allowed, with any tool.
 4. **Build.** `vc build`. It checks the content, makes the page in the user's `look` and
    opens it. If it lists problems, fix the JSON and build again.
-5. **Hand over and stop.** Say one line: "Vibe Check: pass the quiz and paste the code
+5. **Hand over and stop.** Say one line: "Vee Check: pass the quiz and paste the code
    here." If `build` said the page did not open by itself, add the file path on a second
    line so the user can open it. Then end your turn. Do not start the work, plan it out
    loud, or give hints.
@@ -104,7 +104,7 @@ Read [quiz-format.md](quiz-format.md) before your first one. The short version:
 - **Prediction over definitions**, and at least one `explain` question (pick the best
   plain-English explanation for a coworker). A good mix for three questions: one about
   behaviour (`predict` or `expect`), one about the code itself (`fill`, `bug`, `order` or
-  `match`), and one `explain`. Vary the types from one Vibe Check to the next.
+  `match`), and one `explain`. Vary the types from one Vee Check to the next.
 - **One tiny, concrete dataset** from the user's own domain, carried through lesson and quiz.
 - **Check your answer key.** Work out every output yourself or run the code.
 - **Make the learner do something.** In every look, at least one scene should come from
@@ -124,7 +124,7 @@ Three depths: **what** (what it does and why it's there), **how** (the moving pa
 **weeds** (the actual lines, edge cases, gotchas). Start at the `zoom` setting. Then adapt
 using `vc topics`, which shows how the user did recently:
 
-- Last two Vibe Checks all right first try → go one level deeper this time.
+- Last two Vee Checks all right first try → go one level deeper this time.
 - Missed half or more last time → go one level simpler.
 
 Put `"zoom"` in the content to record the depth you wrote at. Where there is something
@@ -173,13 +173,13 @@ scan, tour, placement quiz. After that, only concepts **new to the project** gat
 ## Rules
 
 - **Never show, hint at or look for the pass code.** Don't open the built quiz page.
-- **Never work around the gate**: no creating or changing files outside `.vibe-check/`
+- **Never work around the gate**: no creating or changing files outside `.vee-check/`
   with Bash while a quiz is pending, no deleting `pending.json`, no editing `passed.json`. If the gate reports that it is broken, tell the
   user and offer `vc skip`.
 - **Don't answer the quiz for the user.** If they ask for help on a question, re-explain
   the idea in different words, not the answer.
 - **Keep the hand-over to one line.** The lesson is in the browser, not in the chat.
-- Costs: a Vibe Check adds a lesson's worth of tokens to the task, most with `arcade`,
+- Costs: a Vee Check adds a lesson's worth of tokens to the task, most with `arcade`,
   least with `plain`. If the user worries about usage, suggest `plain` or
   `big_concepts_only`.
 
@@ -188,6 +188,6 @@ scan, tour, placement quiz. After that, only concepts **new to the project** gat
 `${CLAUDE_PLUGIN_ROOT}/examples/pandas-playground/quiz-example/` holds one complete Vibe
 Check on pandas groupby: `pandas-groupby.json` (content), `pandas-groupby.scene.html` and
 `pandas-groupby.scene.js` (the arcade custom scene). Read all three once, before your first
-Vibe Check, to see the shape. It is a reference, not a template: write each lesson fresh
+Vee Check, to see the shape. It is a reference, not a template: write each lesson fresh
 for the user's topic and data, and design a new interaction for each custom scene. Only
 reuse the example's idea when the topic really is groupby.

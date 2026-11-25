@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Vibe Check CLI. Claude runs these to close and open the gate.
+"""Vee Check CLI. Claude runs these to close and open the gate.
 
-  vc.py start "<topic>"        begin a Vibe Check (gate closes); says where to write the quiz content
+  vc.py start "<topic>"        begin a Vee Check (gate closes); says where to write the quiz content
                                add --no-gate for a lesson that doesn't block edits ("teach me X", tours)
   vc.py build                  turn the quiz content into the quiz page and open it in the browser
   vc.py unlock <code>          check a pasted pass code; if right, mark the topic passed (gate opens)
@@ -12,7 +12,7 @@
   vc.py concepts [add ...]     this project's concept list (from a scan): known, learning or gate
   vc.py review "<topic>"       reopen a passed topic's lesson and quiz, with no gate
 
-State in the user's project, in .vibe-check/:
+State in the user's project, in .vee-check/:
   pending.json   the quiz in progress. While it exists, gate.py blocks edits.
   practice.json  a no-gate lesson in progress. The gate ignores it.
   concepts.json  the concepts found in this project and where each stands.
@@ -20,9 +20,9 @@ State in the user's project, in .vibe-check/:
   config.json    this project's settings.
   quizzes/       quiz content (<topic>.json) and the built pages (<topic>.html).
 
-State for the user, in ~/.vibe-check/ (or $VIBE_CHECK_HOME):
+State for the user, in ~/.vee-check/ (or $VEE_CHECK_HOME):
   config.json    default settings for every project.
-  history.jsonl  one line per Vibe Check: what was taught, asked and answered.
+  history.jsonl  one line per Vee Check: what was taught, asked and answered.
   reviews/       no-gate copies of passed quizzes.
   log.html       the Learning Log page.
 
@@ -44,7 +44,7 @@ import webbrowser
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-STATE_DIR = ".vibe-check"
+STATE_DIR = ".vee-check"
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
 CODE_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O or 1/I, which look alike
 XP_PASS, XP_FIRST_TRY, XP_RETRY, XP_PER_LEVEL = 50, 20, 10, 250
@@ -60,7 +60,7 @@ SETTINGS = {
     "lesson_cards": (4, (2, 8), "how many lesson scenes"),
     "questions": (3, (1, 10), "how many questions"),
     "pass_bar": ("all", None, '"all", or how many questions must be right, for example 2'),
-    "trigger": ("new_concepts", ["new_concepts", "big_concepts_only", "manual"], "when a Vibe Check starts"),
+    "trigger": ("new_concepts", ["new_concepts", "big_concepts_only", "manual"], "when a Vee Check starts"),
 }
 SCENE_TYPES = {"story", "steps", "playground", "card", "custom", "sort", "match", "flow", "slider", "build", "compare"}
 QUESTION_TYPES = {"choice", "predict", "explain", "order", "expect", "fill", "bug", "match"}
@@ -76,22 +76,22 @@ def project_root():
 
     Claude Code tells hooks the project folder (CLAUDE_PROJECT_DIR) but doesn't
     always tell shell commands, so fall back to the nearest folder that already
-    has a .vibe-check/, then to the current folder.
+    has a .vee-check/, then to the current folder.
     """
     named = os.environ.get("CLAUDE_PROJECT_DIR")
     if named:
         return Path(named)
     here = Path.cwd()
     for folder in (here, *here.parents):
-        # ~/.vibe-check/ holds the user's history and defaults, not a project's quiz state.
+        # ~/.vee-check/ holds the user's history and defaults, not a project's quiz state.
         if folder != Path.home() and (folder / STATE_DIR).is_dir():
             return folder
     return here
 
 
 def user_home():
-    """The user's own Vibe Check folder (history, default settings, Learning Log)."""
-    return Path(os.environ.get("VIBE_CHECK_HOME") or Path.home() / STATE_DIR)
+    """The user's own Vee Check folder (history, default settings, Learning Log)."""
+    return Path(os.environ.get("VEE_CHECK_HOME") or Path.home() / STATE_DIR)
 
 
 # ---------- small helpers ----------
@@ -136,7 +136,7 @@ def fail(message):
 
 
 def open_in_browser(path, wanted):
-    if wanted and not os.environ.get("VIBE_CHECK_NO_OPEN"):
+    if wanted and not os.environ.get("VEE_CHECK_NO_OPEN"):
         try:
             return webbrowser.open(path.resolve().as_uri())
         except Exception:
@@ -507,7 +507,7 @@ def add_history(state, pending, result, content=None, tail=""):
 
 
 def write_log_page():
-    """~/.vibe-check/log.html: everything covered, newest first, with links to review."""
+    """~/.vee-check/log.html: everything covered, newest first, with links to review."""
     entries = read_history()
     totals = stats(entries)
     e = html.escape
@@ -532,7 +532,7 @@ def write_log_page():
         )
     page = f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vibe Check: Learning Log</title>
+<title>Vee Check: Learning Log</title>
 <style>
 :root{{color-scheme:light dark}}
 body{{max-width:56rem;margin:0 auto;padding:1.5rem 1rem 4rem;font:1rem/1.55 system-ui,sans-serif}}
@@ -544,7 +544,7 @@ th,td{{text-align:left;padding:.4rem 1rem .4rem 0;border-bottom:1px solid color-
 .wide{{overflow-x:auto}}
 </style></head><body>
 <h1>Learning Log</h1>
-<p>Everything you have covered with Vibe Check, newest first.</p>
+<p>Everything you have covered with Vee Check, newest first.</p>
 <div class="totals">
   <div><b>{totals['passed']}</b>topics passed</div>
   <div><b>Level {totals['level']}</b>{totals['xp']} XP</div>
@@ -553,7 +553,7 @@ th,td{{text-align:left;padding:.4rem 1rem .4rem 0;border-bottom:1px solid color-
 </div>
 <div class="wide"><table>
 <tr><th>Date</th><th>Topic</th><th>Track</th><th>Result</th><th>Questions</th><th>XP</th><th>Project</th><th></th></tr>
-{''.join(rows) or '<tr><td colspan="8">Nothing yet. Your first Vibe Check will show up here.</td></tr>'}
+{''.join(rows) or '<tr><td colspan="8">Nothing yet. Your first Vee Check will show up here.</td></tr>'}
 </table></div>
 </body></html>
 """
@@ -583,7 +583,7 @@ def start(state, topic, gated=True, track=None):
     track = track or read_json(state / "concepts.json").get(slug, {}).get("track") or "code"
     if gated and track not in config["tracks"]:
         print(f'"{topic}" is a {track}-track concept, and that track is switched off in the settings.')
-        print("No Vibe Check needed. Gate: OPEN.")
+        print("No Vee Check needed. Gate: OPEN.")
         return 0
     if pending_file.exists():
         current = read_json(pending_file).get("topic", "another topic")
@@ -603,7 +603,7 @@ def start(state, topic, gated=True, track=None):
     })
     (state / "quizzes").mkdir(exist_ok=True)
     if gated:
-        print(f'Vibe Check started: "{topic}" ({track} track)')
+        print(f'Vee Check started: "{topic}" ({track} track)')
         print(f"Gate: CLOSED. Edits outside {STATE_DIR}/ are blocked until the quiz is passed or skipped.")
         if read_json(state / "concepts.json").get(slug, {}).get("status") == "learning":
             print("Note: this concept is on the learning list (already in the code), which doesn't gate by default.")
@@ -672,7 +672,7 @@ def build(state, open_page=True):
     print(f'Quiz page built ({look} look): {quiz_file}')
     print("Opened in the browser." if opened else "It did not open by itself: give the user that path to open.")
     if gated:
-        print('Tell the user in one line: "Vibe Check: pass the quiz and paste the code here." Then stop and wait.')
+        print('Tell the user in one line: "Vee Check: pass the quiz and paste the code here." Then stop and wait.')
     else:
         print("No gate: carry on working. If the user pastes the code from the end, run unlock to log it.")
     return 0
@@ -896,9 +896,9 @@ def review(state, topic, open_page=True):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="vc.py", description="Vibe Check: close and open the quiz gate.")
+    parser = argparse.ArgumentParser(prog="vc.py", description="Vee Check: close and open the quiz gate.")
     commands = parser.add_subparsers(dest="command", required=True, metavar="command")
-    start_args = commands.add_parser("start", help="begin a Vibe Check on a topic (closes the gate)")
+    start_args = commands.add_parser("start", help="begin a Vee Check on a topic (closes the gate)")
     start_args.add_argument("topic", nargs="+", help="the concept, for example: pandas groupby")
     start_args.add_argument("--no-gate", action="store_true", help="a lesson that doesn't block edits")
     start_args.add_argument("--track", choices=TRACKS, help="what kind of concept this is (default: code)")
