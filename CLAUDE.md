@@ -36,6 +36,7 @@ install from this repo, so keep anything specific to Patrick out of the plugin f
 | First test topic | pandas DataFrames (something Patrick already knows, so we test the tool, not him) |
 | **Lesson before quiz** | Every Vibe Check is **Learn → Check**: a short interactive lesson first (click-through cards with a tiny example, maybe a "predict the output" step), *then* the quiz. Never quiz on something that wasn't taught. |
 | **If the gate breaks** | Fail closed only while a quiz is pending (error → exit 2 with a "gate is broken" message). With no quiz pending, an error lets the edit through, so a bug can't lock up normal editing. |
+| **After a skip** | `skip` only opens the gate this once. The concept is not marked as passed, so it gets quizzed again the next time it comes up. |
 | **Concepts vs. hands-on** | A `style` setting. **`concepts` (default):** the goal is understanding what the code does well enough to explain it to someone, no typing code. **`hands_on`:** learn by doing, where the user writes a small piece of the code themselves. Never force hands-on when the style is `concepts`. |
 | **Adjustable** | Difficulty, number of questions, pass bar, lesson on/off and trigger sensitivity are all settings. Asked at first run in a project, changeable anytime (see Settings below). |
 
@@ -87,7 +88,7 @@ project (AskUserQuestion), and changeable anytime with `/vibe-check:config` or b
 
 ## Build plan (do these one at a time)
 - [x] **1. Gate hook:** write `scripts/gate.py`. It reads the hook's JSON on stdin; if `.vibe-check/pending.json` exists and the target file isn't inside `.vibe-check/`, it exits 2 with a clear message for Claude. Otherwise it exits 0. Test it by piping sample JSON into it.
-- [ ] **2. CLI:** write `scripts/vc.py` with the start / unlock / skip / status commands, using only the standard library.
+- [x] **2. CLI:** write `scripts/vc.py` with the start / unlock / skip / status commands, using only the standard library.
 - [ ] **3. Quiz template:** `templates/quiz.html` as one file with no CDN, so it works on locked-down machines. **Lesson (click-through cards, tiny example, predict-the-output)** → MCQ → retry misses → reveal the pass code. Lengths come from the config. Mobile-friendly.
 - [ ] **4. Skill:** finish `skills/vibe-check/SKILL.md`: when to trigger, how to write good questions (teach before you test; prediction over definitions; respect config for level and counts; first-run setup questions), the step-by-step flow.
 - [ ] **5. Slash commands:** `/vibe-check:skip`, `/vibe-check:status`, `/vibe-check:config`. `vc.py` reads and writes the config.
