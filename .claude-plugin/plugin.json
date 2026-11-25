@@ -1,0 +1,7 @@
+{
+  "name": "vibe-check",
+  "version": "0.0.1",
+  "description": "Pass a quick quiz before Claude Code writes the code. Learn as you vibe.",
+  "author": { "name": "Patrick McDowell" },
+  "keywords": ["learning", "quiz", "vibe-coding", "education"]
+}

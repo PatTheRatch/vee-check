@@ -1,0 +1,11 @@
+{
+  "name": "vibe-check",
+  "owner": { "name": "Patrick McDowell" },
+  "plugins": [
+    {
+      "name": "vibe-check",
+      "source": "./",
+      "description": "Pass a quick quiz before Claude Code writes the code. Learn as you vibe."
+    }
+  ]
+}
