@@ -56,7 +56,11 @@ scripts/vc.py                   CLI: start / build / unlock / skip / status / co
 templates/core.js               shared quiz rules, pass code and answer trail; stamped into every page
 templates/game.html             the arcade and classic looks (one file, arcade switches the extras on)
 templates/plain.html            the plain look
-commands/                       slash commands: skip, status, config, topics, review, scan, tour, check, issues
+skills/vee-*/SKILL.md           slash commands, as command-only skills so they work in Claude Code and Copilot:
+                                vee-skip, vee-status, vee-config, vee-topics, vee-review, vee-scan, vee-tour,
+                                vee-check-code, vee-issues (Claude Code shows them as /vee-check:vee-skip etc.)
+scripts/install_copilot.py      sets Vee Check up for GitHub Copilot when the plugin system isn't available
+docs/copilot.md                 how to run it with Copilot in VS Code, and what to send back if it misbehaves
 examples/pandas-playground/     sample data plus a complete worked quiz (content + custom scene)
 prototypes/                     the three hand-built groupby pages the looks came from
 tests/test_vee_check.py        gate and CLI tests (python3 -m unittest discover -s tests)
@@ -90,7 +94,7 @@ scene, and if it throws the page shows the fallback. A bad scene can't block the
 ## Settings (v1)
 Stored at `.vee-check/config.json` in the project, with optional global defaults at
 `~/.vee-check/config.json` (project wins). Asked once, the first time Vee Check runs in a
-project (AskUserQuestion), and changeable anytime with `/vee-check:config` or by just saying
+project (AskUserQuestion), and changeable anytime with `/vee-config` or by just saying
 "make it easier", "fewer questions", etc.
 ```json
 {
@@ -137,6 +141,23 @@ code each time. All work in all three looks (plain shows them as tables or lists
 - Ideas not built yet: two-handle slider (for `a[1:4]`), a call-stack scene (recursion), a
   node-and-arrow map for architecture, a "worked calculation" scene for domain math.
 
+## Running in GitHub Copilot (VS Code) as well as Claude Code
+Patrick will use this at work, where he has VS Code + GitHub Copilot (no Claude Code) and
+code on Bitbucket. He has installed a plugin there from a Bitbucket git URL before, and
+`python3` works. So everything must work in both hosts:
+- One repo, both hosts. VS Code's agent plugins read the Claude plugin layout. No second copy.
+- `gate.py` accepts both payloads (`tool_name`/`tool_input` and `toolName`/`toolArgs`), both
+  families of tool names, and patches; it blocks with exit 2 + stderr + a JSON deny on stdout.
+  It decides by tool name itself, so it stays correct even where a host ignores the matcher.
+- No `commands/` folder: slash commands are command-only skills (see Architecture).
+- Wording on pages and in skills is agent-neutral ("paste it into the chat").
+- `scripts/install_copilot.py` is the route when plugins are unavailable or blocked.
+- **Not verified in a real Copilot session.** Facts came from the VS Code and GitHub docs on
+  2026-11-25 (hooks are "preview" there; a hook timeout fails open). Unknown until tested:
+  the exact tool names and argument fields VS Code sends. `.vee-check/debug` makes the gate
+  log real payloads to `.vee-check/hook-log.jsonl` for exactly this.
+- Company policy can disable hooks or plugins; then Vee Check teaches but can't enforce.
+
 ## Naming (decided: Vee Check)
 The project started as "Vibe Check", but that name is used by other products
 (agileforce.co.uk/vibecheck, vibecheck.software, vibe-check.cloud). On 2026-11-25 Patrick
@@ -178,8 +199,8 @@ user learns something **or the code is wrong**. Design rules:
 - `expect` question type (answer = what the code actually does) and an optional `source` on any question.
 - "That's not what it should do" button after any wrong reveal (not on put-in-order). It
   travels back in the pasted code as a `d` mark, is not a miss, and keeps full XP.
-- `unlock` prints each POSSIBLE ISSUE; `vc.py issues` and `/vee-check:issues` list them; the
-  Learning Log counts them. `/vee-check:check <area>` runs a no-gate review quiz.
+- `unlock` prints each POSSIBLE ISSUE; `vc.py issues` and `/vee-issues` list them; the
+  Learning Log counts them. `/vee-check-code <area>` runs a no-gate review quiz.
 - Worked domain example: `examples/pandas-playground/quiz-example-domain/`.
 - **Not built yet:** nothing *enforces* that answer keys come from running the code (it is a
   rule in the skill); issues have no open/resolved state; no architecture-track example.
@@ -194,7 +215,7 @@ user learns something **or the code is wrong**. Design rules:
 4. **Concepts already in the code never gate** by default. They go on a learning list the user can
    visit anytime ("teach me X"). The user can choose to make a specific concept gate.
    Only concepts that are *new* to the project gate automatically.
-- Command idea: `/vee-check:scan` runs the inventory, `/vee-check:tour` replays the tour.
+- Command idea: `/vee-scan` runs the inventory, `/vee-tour` replays the tour.
 
 ## Depth: how high-level vs. in the weeds (decided)
 - Three zoom levels: **What** (what it does and why it's there) → **How** (the moving parts) →
@@ -213,7 +234,7 @@ Every Vee Check is logged so the user can see what they've covered and go back t
 - `.vee-check/passed.json` (per project) stays as the "don't re-quiz" list.
 - **Learning Log page**: a generated `~/.vee-check/log.html` listing topics covered (by date and
   project), with a **Review** button per topic that replays the lesson and quiz without gating.
-- Commands: `/vee-check:topics` ("what have we covered?") and `/vee-check:review <topic>`.
+- Commands: `/vee-topics` ("what have we covered?") and `/vee-review <topic>`.
 - Gamification stats (XP, streaks and so on) are computed from the history, not stored separately.
 
 ## Build plan (do these one at a time)
@@ -221,7 +242,7 @@ Every Vee Check is logged so the user can see what they've covered and go back t
 - [x] **2. CLI:** write `scripts/vc.py` with the start / unlock / skip / status commands, using only the standard library.
 - [x] **3. Quiz template:** `templates/quiz.html` as one file with no CDN, so it works on locked-down machines. **Lesson (click-through cards, tiny example, predict-the-output)** → MCQ → retry misses → reveal the pass code. Lengths come from the config. Mobile-friendly.
 - [x] **4. Skill:** finish `skills/vee-check/SKILL.md`: when to trigger, how to write good questions (teach before you test; prediction over definitions; respect config for level and counts; first-run setup questions), the step-by-step flow.
-- [x] **5. Slash commands:** `/vee-check:skip`, `/vee-check:status`, `/vee-check:config`. `vc.py` reads and writes the config.
+- [x] **5. Slash commands:** `/vee-skip`, `/vee-status`, `/vee-config`. `vc.py` reads and writes the config.
 - [ ] **6. Test it:** install the plugin locally and use it in `examples/pandas-playground` (for example, "load a CSV into a DataFrame and group by a column"). Fix whatever feels annoying.
   *Partly done: automated tests, browser click-throughs of all three looks, and a fresh agent following the skill cold all pass. Still to do by a person: install the plugin for real, confirm the hook blocks an edit in a live session, and take one whole Vee Check start to finish.*
 - [x] **7. README + release:** install steps, a GIF/screenshot, tag v0.1.0.

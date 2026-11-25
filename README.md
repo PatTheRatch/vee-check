@@ -16,7 +16,7 @@ short lesson and quiz in your browser. **No passing, no code.**
 4. You copy the pass code from the last screen, paste it into Claude Code, and it gets to work.
 5. Concepts you've passed are remembered and never quizzed again.
 
-Need to just ship? Type `/vee-check:skip`. It's your tool. A skipped concept comes back next time.
+Need to just ship? Type `/vee-skip`. It's your tool. A skipped concept comes back next time.
 
 ## Install
 
@@ -33,6 +33,11 @@ On versions before 2.1.275, do it in two steps:
 /plugin install vee-check@vee-check
 ```
 
+**Using GitHub Copilot in VS Code instead?** Vee Check also runs in Copilot's agent mode,
+installed from a git address (Bitbucket works) or with a one-line script. See
+[docs/copilot.md](docs/copilot.md). That route is built from the docs and not yet
+battle-tested.
+
 It needs Python 3.9 or later on your PATH as `python3`. Nothing else: no packages, no
 network, and the quiz pages are single files that open offline.
 
@@ -40,7 +45,7 @@ The first time it runs in a project it asks four quick questions (look, tracks, 
 
 ## Three looks
 
-Same lesson and questions in each. Pick one with `/vee-check:config look <name>`.
+Same lesson and questions in each. Pick one with `/vee-config look <name>`.
 
 | Look | What you get | Cost |
 |---|---|---|
@@ -85,31 +90,32 @@ choose which ones you get lessons on:
 | `architecture` | How the pieces fit together |
 | `code` | The language, libraries and patterns |
 
-`/vee-check:config tracks domain,architecture` turns the code lessons off.
+`/vee-config tracks domain,architecture` turns the code lessons off.
 
 ## A quiz that can find bugs
 
 Domain lessons ask what you **expect** before showing what the code really does ("should a
 blank weight stop the script?"). If the reveal isn't what it should do, press
 **That's not what it should do**. It doesn't count against you. It's logged as a possible
-issue, and Claude checks the code against your expectation and reports back. Either you
+issue, and your coding agent checks the code against your expectation and reports back. Either you
 learn something or the code is wrong.
 
-`/vee-check:check <area>` runs one of these reviews on purpose, with no gate.
+`/vee-check-code <area>` runs one of these reviews on purpose, with no gate.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/vee-check:status` | The gate, your level and streak, what you've passed here |
-| `/vee-check:skip` | Skip the pending quiz, on purpose |
-| `/vee-check:config` | Show settings, or change one: `/vee-check:config fewer questions` |
-| `/vee-check:topics` | Everything you've covered, with a link to your Learning Log |
-| `/vee-check:review <topic>` | Replay a passed lesson and quiz, with no gate |
-| `/vee-check:scan` | For a project that already has code: list the concepts it uses |
-| `/vee-check:tour` | A guided lesson on how the whole project fits together |
-| `/vee-check:check <area>` | Review part of the code as a quiz on what you expect it to do |
-| `/vee-check:issues` | The possible bugs you flagged during quizzes |
+| *(In Claude Code these carry the plugin's prefix: `/vee-check:vee-status` and so on.)* | |
+| `/vee-status` | The gate, your level and streak, what you've passed here |
+| `/vee-skip` | Skip the pending quiz, on purpose |
+| `/vee-config` | Show settings, or change one: `/vee-config fewer questions` |
+| `/vee-topics` | Everything you've covered, with a link to your Learning Log |
+| `/vee-review <topic>` | Replay a passed lesson and quiz, with no gate |
+| `/vee-scan` | For a project that already has code: list the concepts it uses |
+| `/vee-tour` | A guided lesson on how the whole project fits together |
+| `/vee-check-code <area>` | Review part of the code as a quiz on what you expect it to do |
+| `/vee-issues` | The possible bugs you flagged during quizzes |
 
 You can also just say it: "teach me decorators", "make it easier", "what have we covered?".
 
@@ -145,7 +151,7 @@ that history. Nothing is sent anywhere.
   in the shell are not blocked in this version, so the skill tells Claude not to use them
   as a way around.
 - **If the gate itself breaks** while a quiz is pending, it stays closed and says so, and
-  `/vee-check:skip` still opens it. With no quiz pending it never blocks anything.
+  `/vee-skip` still opens it. With no quiz pending it never blocks anything.
 - Add `.vee-check/` to your project's `.gitignore`.
 
 ## Develop
@@ -160,7 +166,8 @@ claude --plugin-dir .
 
 The pieces: `scripts/gate.py` (the hook), `scripts/vc.py` (the CLI Claude runs),
 `templates/` (the page looks), `skills/vee-check/` (what tells Claude when and how),
-`commands/` (the slash commands), `examples/pandas-playground/` (a worked example).
+`skills/vee-*/` (the slash commands), `scripts/install_copilot.py` (setup without the plugin
+system), `examples/pandas-playground/` (a worked example).
 
 ## License
 

@@ -96,6 +96,84 @@ class GateTests(Base):
         self.assertEqual(self.gate(None, stdin=json.dumps({"tool_input": {}}))[0], 2)
 
 
+class CopilotTests(Base):
+    """GitHub Copilot sends different field names and tool names from Claude Code."""
+
+    def pend(self):
+        state = self.project / ".vee-check"
+        state.mkdir(exist_ok=True)
+        (state / "pending.json").write_text(json.dumps({"topic": "pandas groupby"}))
+
+    def copilot(self, tool, args):
+        payload = {"sessionId": "s", "timestamp": 1, "cwd": str(self.project), "toolName": tool, "toolArgs": args}
+        done = subprocess.run([sys.executable, "-B", str(GATE)], input=json.dumps(payload), text=True, capture_output=True,
+                              env={k: v for k, v in self.env.items() if k != "CLAUDE_PROJECT_DIR"})
+        return done.returncode, done.stdout, done.stderr
+
+    def test_copilot_edits_are_blocked_with_a_deny_decision(self):
+        self.pend()
+        for tool, args in (("edit", {"path": "app.py"}), ("create", {"path": str(self.project / "new.py")}),
+                           ("edit", json.dumps({"filePath": "src/app.py"}))):          # args as JSON text
+            with self.subTest(tool=tool, args=args):
+                code, out, err = self.copilot(tool, args)
+                self.assertEqual(code, 2)
+                self.assertEqual(json.loads(out)["permissionDecision"], "deny")
+                self.assertIn("pandas groupby", json.loads(out)["permissionDecisionReason"])
+
+    def test_copilot_can_still_read_run_commands_and_write_the_quiz(self):
+        self.pend()
+        for tool, args in (("view", {"path": "app.py"}), ("bash", {"command": "python3 vc.py status"}),
+                           ("grep", {"pattern": "x"}), ("ask_user", {"question": "?"}),
+                           ("create", {"path": ".vee-check/quizzes/pandas-groupby.json"})):
+            with self.subTest(tool=tool):
+                self.assertEqual(self.copilot(tool, args)[0], 0)
+
+    def test_patches_are_checked_file_by_file(self):
+        self.pend()
+        outside = "*** Begin Patch\n*** Update File: app.py\n@@\n-a\n+b\n*** End Patch"
+        inside = "*** Begin Patch\n*** Add File: .vee-check/quizzes/x.scene.js\n+1\n*** End Patch"
+        mixed = inside.replace("*** End Patch", "*** Update File: app.py\n@@\n-a\n+b\n*** End Patch")
+        self.assertEqual(self.copilot("apply_patch", outside)[0], 2)
+        self.assertEqual(self.copilot("apply_patch", {"input": inside})[0], 0)
+        self.assertEqual(self.copilot("apply_patch", mixed)[0], 2)
+
+    def test_nothing_is_blocked_without_a_pending_quiz(self):
+        self.assertEqual(self.copilot("edit", {"path": "app.py"})[0], 0)
+
+    def test_debug_file_records_what_the_editor_sent(self):
+        self.pend()
+        (self.project / ".vee-check" / "debug").write_text("")
+        self.copilot("edit", {"path": "app.py"})
+        logged = json.loads((self.project / ".vee-check" / "hook-log.jsonl").read_text().splitlines()[-1])
+        self.assertEqual(logged["toolName"], "edit")
+
+    def test_installer_sets_up_skills_and_hook_and_removes_them(self):
+        home = self.tmp / "copilot"
+        run = lambda *extra: subprocess.run([sys.executable, "-B", str(REPO / "scripts" / "install_copilot.py"), *extra],
+                                            env={**self.env, "COPILOT_HOME": str(home)}, text=True, capture_output=True)
+        self.assertEqual(run().returncode, 0)
+        skill = (home / "skills" / "vee-check" / "SKILL.md").read_text()
+        self.assertNotIn("${CLAUDE_PLUGIN_ROOT}", skill)
+        self.assertIn(str(REPO.as_posix()) + "/scripts/vc.py", skill)
+        self.assertTrue((home / "skills" / "vee-skip" / "SKILL.md").exists())
+        hook = json.loads((home / "hooks" / "vee-check.json").read_text())["hooks"]["preToolUse"][0]
+        self.assertIn("gate.py", hook["bash"])
+        self.assertEqual(run("--uninstall").returncode, 0)
+        self.assertFalse((home / "skills" / "vee-check").exists())
+        self.assertFalse((home / "hooks" / "vee-check.json").exists())
+
+
+class SkillTests(unittest.TestCase):
+    def test_every_skill_is_named_after_its_folder(self):
+        for page in sorted((REPO / "skills").glob("*/SKILL.md")):
+            with self.subTest(skill=page.parent.name):
+                front = page.read_text(encoding="utf-8").split("---")[1]
+                self.assertIn(f"name: {page.parent.name}\n", front)
+                self.assertRegex(page.parent.name, r"^[a-z0-9-]{1,64}$")
+                description = re.search(r"description: (.*)", front).group(1)
+                self.assertLessEqual(len(description), 1024)
+
+
 class CliTests(Base):
     def test_full_pass_flow(self):
         code = self.start_and_build()

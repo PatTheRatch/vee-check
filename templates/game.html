@@ -411,7 +411,7 @@ function splash(){
   enter();progress(0);
   $('#main').innerHTML=`<div class="splash">
     <div class="big">${[...'Vee'].map((c,i)=>`<b style="animation-delay:${i*70}ms">${c}</b>`).join('')}<span>${[...'Check'].map((c,i)=>`<b style="animation-delay:${(i+3)*70}ms">${c}</b>`).join('')}</span></div>
-    <p class="muted" style="margin-top:18px">${D.review?'A review of':D.gate===false?'No gate on this one. A lesson on':'Before Claude writes this code, a quick one on'}</p>
+    <p class="muted" style="margin-top:18px">${D.review?'A review of':D.gate===false?'No gate on this one. A lesson on':'Before this code gets written, a quick one on'}</p>
     <div class="topic">${esc(D.topic)}</div>
     <div class="row"><button class="btn glow" id="s1" data-enter>Start with sound 🔊</button><button class="btn ghost" id="s0">Start quiet</button></div>
     <p class="muted small" style="margin-top:22px">${LESSON.length?LESSON.length+' lesson '+(LESSON.length===1?'scene':'scenes')+', ':''}${QN} ${QN===1?'question':'questions'}${D.review?'':', 1 pass code'}</p></div>`;
@@ -662,7 +662,7 @@ function answered(ok,qi,q,el,mark){
   // A dispute is a possible bug in the code, not a miss: it is logged and doesn't count against the user.
   if($('#dispute'))$('#dispute').onclick=()=>{quiz.dispute(qi);addXP(firstGo?20:10,$('#dispute'));
     fb.className='fb';fb.style.border='1px solid var(--line)';
-    fb.innerHTML='<b>Logged as a possible issue.</b> It doesn\'t count against you. Claude will check the code against what you expected and report back.';
+    fb.innerHTML='<b>Logged as a possible issue.</b> It doesn\'t count against you. Your coding agent will check the code against what you expected and report back.';
     say('Good catch, maybe. Flagged it.','happy');sfx.click()};
   const nav=$('.nav');nav.innerHTML=`<span></span><button class="btn${A?' glow':''}" id="nextQ" data-enter>Next</button>`;
   $('#nextQ').onclick=()=>{
@@ -688,7 +688,7 @@ async function win(){
         <div class="stat"><b>${quiz.firstTry()}/${QN}</b><small>first try</small></div>
         <div class="stat"><b>${A?'x'+Math.max(1,best):quiz.right.size+'/'+QN}</b><small>${A?'best combo':'correct'}</small></div>
       </div>
-      ${D.review?'<p>Nothing to paste. You can close this page.</p>':`<p>Copy this code and paste it into Claude Code to ${D.gate===false?'save this to your Learning Log':'unlock the build'}:</p>
+      ${D.review?'<p>Nothing to paste. You can close this page.</p>':`<p>Copy this code and paste it into the chat to ${D.gate===false?'save this to your Learning Log':'unlock the build'}:</p>
       <div class="code" id="code" aria-label="Pass code">${A?'•••••••••':esc(code)}</div><br>`}
       <div class="row">${D.review?'':`<button class="btn${A?' glow':''}" id="copy" data-enter>Copy code</button>`}<button class="btn ghost" id="replay">Replay</button></div>
       ${D.review?'':'<p class="muted small">Copy includes a short record of your answers for your Learning Log.</p>'}

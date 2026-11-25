@@ -18,6 +18,13 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/vc.py" <command>
 
 In the rest of this file, `vc <command>` is short for that full line.
 
+If the line above still shows the text `${CLAUDE_PLUGIN_ROOT}` instead of a real folder,
+nothing filled it in for you: the plugin folder is the one two levels above this file's
+folder (it contains `scripts/vc.py`). On Windows, use `python` if `python3` isn't found.
+
+This skill works the same in Claude Code and in GitHub Copilot's agent mode. Where it says
+"you", it means whichever coding agent is reading it.
+
 ## When to run one
 
 Before you edit any file for a task, name the concepts the task needs. A concept is
@@ -76,7 +83,7 @@ time it comes up. Never suggest skipping yourself.
 
 ## First-run setup questions
 
-Ask these once per project with AskUserQuestion, then save each answer with
+Ask these once per project with a multiple-choice question (AskUserQuestion in Claude Code, ask_user in Copilot; plain chat if you have neither), then save each answer with
 `vc config set <key> <value>` (add `--global` if they want it everywhere):
 
 1. **Look** (`look`). Say what each costs:
