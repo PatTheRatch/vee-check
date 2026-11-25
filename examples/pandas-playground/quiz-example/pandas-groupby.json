@@ -12,12 +12,12 @@
       "table": {
         "columns": ["ticker", "region", "sector", "weight"],
         "rows": [
-          ["AAA", "Europe", "Tech", "5%"],
-          ["BBB", "Asia", "Banks", "3%"],
-          ["CCC", "Europe", "Health", "4%"],
-          ["DDD", "EM", "Tech", "2%"],
-          ["EEE", "Asia", "Health", "5%"],
-          ["FFF", "EM", "Banks", "1%"]
+          ["AAA", "Europe", "Tech", "5"],
+          ["BBB", "Asia", "Banks", "3"],
+          ["CCC", "Europe", "Health", "4"],
+          ["DDD", "EM", "Tech", "2"],
+          ["EEE", "Asia", "Health", "5"],
+          ["FFF", "EM", "Banks", "1"]
         ]
       },
       "body": "Adding by hand works for 6 rows, not for 600. pandas does it in one line with `groupby`."
@@ -58,12 +58,12 @@
             }
           },
           {
-            "text": "**Apply + combine.** Pick the `weight` column, `sum` each pile, and you get one row per region.",
+            "text": "**Apply + combine.** Pick the `weight` column, `sum` each pile, and you get one row per region, sorted by name.",
             "code": "df.groupby('region')[[['weight'].sum()]]",
             "table": {
               "columns": ["region", "piles", "sum"],
-              "rows": [["Europe", "5 + 4", "9"], ["Asia", "3 + 5", "8"], ["EM", "2 + 1", "3"]],
-              "groups": ["Europe", "Asia", "EM"]
+              "rows": [["Asia", "3 + 5", "8"], ["EM", "2 + 1", "3"], ["Europe", "5 + 4", "9"]],
+              "groups": ["Asia", "EM", "Europe"]
             }
           }
         ]
@@ -78,14 +78,14 @@
         { "name": "function", "options": ["sum", "mean", "count", "max"] }
       ],
       "results": {
-        "region|sum": { "code": "df.groupby('[[region]]')['weight'].[[sum]]()", "rows": [["Europe", 9], ["Asia", 8], ["EM", 3]], "say": "In plain English: it adds up the weights in each group, one result per region." },
-        "region|mean": { "code": "df.groupby('[[region]]')['weight'].[[mean]]()", "rows": [["Europe", 4.5], ["Asia", 4.0], ["EM", 1.5]], "say": "In plain English: it averages the weights in each group, one result per region." },
-        "region|count": { "code": "df.groupby('[[region]]')['weight'].[[count]]()", "rows": [["Europe", 2], ["Asia", 2], ["EM", 2]], "say": "In plain English: it counts how many rows land in each group, one result per region." },
-        "region|max": { "code": "df.groupby('[[region]]')['weight'].[[max]]()", "rows": [["Europe", 5], ["Asia", 5], ["EM", 2]], "say": "In plain English: it finds the biggest weight in each group, one result per region." },
-        "sector|sum": { "code": "df.groupby('[[sector]]')['weight'].[[sum]]()", "rows": [["Tech", 7], ["Banks", 4], ["Health", 9]], "say": "In plain English: it adds up the weights in each group, one result per sector." },
-        "sector|mean": { "code": "df.groupby('[[sector]]')['weight'].[[mean]]()", "rows": [["Tech", 3.5], ["Banks", 2.0], ["Health", 4.5]], "say": "In plain English: it averages the weights in each group, one result per sector." },
-        "sector|count": { "code": "df.groupby('[[sector]]')['weight'].[[count]]()", "rows": [["Tech", 2], ["Banks", 2], ["Health", 2]], "say": "In plain English: it counts how many rows land in each group, one result per sector." },
-        "sector|max": { "code": "df.groupby('[[sector]]')['weight'].[[max]]()", "rows": [["Tech", 5], ["Banks", 3], ["Health", 5]], "say": "In plain English: it finds the biggest weight in each group, one result per sector." }
+        "region|sum": { "code": "df.groupby('[[region]]')['weight'].[[sum]]()", "rows": [["Asia", 8], ["EM", 3], ["Europe", 9]], "say": "In plain English: it adds up the weights in each group, one result per region." },
+        "region|mean": { "code": "df.groupby('[[region]]')['weight'].[[mean]]()", "rows": [["Asia", 4.0], ["EM", 1.5], ["Europe", 4.5]], "say": "In plain English: it averages the weights in each group, one result per region." },
+        "region|count": { "code": "df.groupby('[[region]]')['weight'].[[count]]()", "rows": [["Asia", 2], ["EM", 2], ["Europe", 2]], "say": "In plain English: it counts how many rows land in each group, one result per region." },
+        "region|max": { "code": "df.groupby('[[region]]')['weight'].[[max]]()", "rows": [["Asia", 5], ["EM", 2], ["Europe", 5]], "say": "In plain English: it finds the biggest weight in each group, one result per region." },
+        "sector|sum": { "code": "df.groupby('[[sector]]')['weight'].[[sum]]()", "rows": [["Banks", 4], ["Health", 9], ["Tech", 7]], "say": "In plain English: it adds up the weights in each group, one result per sector." },
+        "sector|mean": { "code": "df.groupby('[[sector]]')['weight'].[[mean]]()", "rows": [["Banks", 2.0], ["Health", 4.5], ["Tech", 3.5]], "say": "In plain English: it averages the weights in each group, one result per sector." },
+        "sector|count": { "code": "df.groupby('[[sector]]')['weight'].[[count]]()", "rows": [["Banks", 2], ["Health", 2], ["Tech", 2]], "say": "In plain English: it counts how many rows land in each group, one result per sector." },
+        "sector|max": { "code": "df.groupby('[[sector]]')['weight'].[[max]]()", "rows": [["Banks", 3], ["Health", 5], ["Tech", 5]], "say": "In plain English: it finds the biggest weight in each group, one result per sector." }
       }
     }
   ],
@@ -94,9 +94,9 @@
       "type": "predict",
       "prompt": "What does this give you?",
       "code": "df.groupby('region')['weight'].mean()",
-      "options": ["Europe    9\nAsia      8\nEM        3", "Europe    4.5\nAsia      4.0\nEM        1.5", "3.33"],
+      "options": ["Asia      8\nEM        3\nEurope    9", "Asia      4.0\nEM        1.5\nEurope    4.5", "3.33"],
       "answer": 1,
-      "why": "`mean` averages each group: Europe (5+4)/2 = 4.5, Asia (3+5)/2 = 4.0, EM (2+1)/2 = 1.5. The 9 / 8 / 3 answer is what `sum` would give."
+      "why": "`mean` averages each group: Asia (3+5)/2 = 4.0, EM (2+1)/2 = 1.5, Europe (5+4)/2 = 4.5. The 8 / 3 / 9 answer is what `sum` would give. pandas lists the groups in sorted order."
     },
     {
       "type": "order",

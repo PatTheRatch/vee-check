@@ -36,7 +36,10 @@ import json
 import os
 import re
 import secrets
+import shutil
+import subprocess
 import sys
+import tempfile
 import webbrowser
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -304,6 +307,27 @@ def load_scene_files(content, folder):
                 scene[key] = path.read_text(encoding="utf-8")
 
 
+def check_scene_scripts(content):
+    """Catch a custom scene whose JavaScript won't even parse. Needs node; skipped without it."""
+    node = shutil.which("node")
+    problems = []
+    for number, scene in enumerate(content.get("lesson") or [], 1):
+        if not (node and isinstance(scene, dict) and scene.get("type") == "custom" and isinstance(scene.get("js"), str)):
+            continue
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as scratch:
+            scratch.write("(function(vc){\n" + scene["js"] + "\n})")
+        try:
+            done = subprocess.run([node, "--check", scratch.name], capture_output=True, text=True, timeout=20)
+            if done.returncode != 0:
+                detail = " ".join(done.stderr.strip().splitlines()[1:5]).strip()
+                problems.append(f"lesson scene {number}: the custom scene's JavaScript has a syntax error: {detail}")
+        except (OSError, subprocess.SubprocessError):
+            pass
+        finally:
+            os.unlink(scratch.name)
+    return problems
+
+
 def scenes_for(look, lesson):
     """Custom scenes only run in the arcade look; the other looks get their fallback."""
     if look == "arcade":
@@ -506,7 +530,9 @@ def start(state, topic, gated=True):
     if not is_set_up(state):
         print("First run here: ask the user the setup questions and save them with config set, before writing the quiz.")
     print(f"Write the quiz content (JSON) to: {state.parent / quizzes / (slug + '.json')}")
-    print("Then run: build")
+    if config["look"] == "arcade":
+        print(f"Custom scene files go next to it: {slug}.scene.html and {slug}.scene.js")
+    print("Then run this same script with: build")
     return 0
 
 
@@ -530,7 +556,7 @@ def build(state, open_page=True):
         load_scene_files(content, content_file.parent)
     except (OSError, ValueError) as problem:
         return fail(f"A custom scene file could not be read: {problem}")
-    problems = check_content(content)
+    problems = check_content(content) + check_scene_scripts(content)
     if problems:
         return fail("The quiz content needs fixing, then run build again:\n- " + "\n- ".join(problems))
 
@@ -721,6 +747,8 @@ def status(state):
             print(f"  - {entry.get('topic', '?')} ({entry.get('passed', '?')})")
     else:
         print("Passed here: none yet.")
+    concepts = read_json(state / "concepts.json")
+    print(f"Concept list: {len(concepts)} concepts (run concepts to see them)." if concepts else "Concept list: none yet.")
     totals = stats(read_history())
     print(f"Overall: level {totals['level']}, {totals['xp']} XP, {totals['streak']}-day streak, {totals['passed']} topics passed.")
     print(f"Settings: {json.dumps(load_config(state))}" + ("" if is_set_up(state) else " (defaults, not set up yet)"))

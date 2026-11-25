@@ -29,8 +29,8 @@ one('#sum').onclick = () => {
   one('#gcode').innerHTML = "df.groupby('region')<span class=\"hl\">['weight'].sum()</span>";
   all('.bucket').forEach((bucket, i) => setTimeout(() => {
     bucket.querySelector('.sumline').textContent += ' =';
-    bucket.querySelector('.pile').innerHTML = '<div class="total">0%</div>';
-    vc.roll(bucket.querySelector('.total'), 0, sums[bucket.dataset.k], 600, '%');
+    bucket.querySelector('.pile').innerHTML = '<div class="total">0</div>';
+    vc.roll(bucket.querySelector('.total'), 0, sums[bucket.dataset.k], 600);
     vc.burst(bucket);
     vc.sfx.crush();
     if (i === 2) vc.done('Split, apply, combine. That is the whole trick.');

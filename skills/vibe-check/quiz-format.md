@@ -2,8 +2,7 @@
 
 You write one JSON file per Vibe Check. `start` prints the exact path
 (`.vibe-check/quizzes/<topic>.json`). `build` checks it, tells you what to fix, and turns it
-into the page. A complete worked example ships with the plugin in
-`examples/pandas-playground/quiz-example/`.
+into the page. A complete worked example ships with the plugin; SKILL.md gives its path.
 
 ```json
 {
@@ -14,24 +13,27 @@ into the page. A complete worked example ships with the plugin in
 }
 ```
 
-- `badge`: one emoji for the topic. Shown when the user passes and on the Learning Log.
+- `badge`: optional, one emoji for the topic. Shown when the user passes and on the Learning Log.
 - `zoom`: the depth you actually wrote this at (`what`, `how` or `weeds`). Leave it out to use the setting.
-- `lesson`: as many scenes as the `lesson_cards` setting says. Empty if the `lesson` setting is off.
+- `lesson`: as many scenes in total as the `lesson_cards` setting says (a custom scene counts as one). Empty if the `lesson` setting is off.
 - `questions`: as many as the `questions` setting says.
 
 ## Text rules
 
 Every text field is plain text with two extras: `` `backticks` `` for code and `**bold**`.
-No HTML (it is shown as typed). In a `code` field, wrap the part to look at in
-`[[double brackets]]` to highlight it: `"df.[[groupby('region')]]['weight'].sum()"`.
+No HTML (it is shown as typed). In any `code` field, in scenes and questions alike, wrap
+the part to look at in `[[double brackets]]` to highlight it:
+`"df.[[groupby('region')]]['weight'].sum()"`. Use `\n` for line breaks in code and output.
 
-Any scene can carry `"deeper"`: a short paragraph one depth level below the lesson, shown
-behind a "Go deeper" button.
+Any scene can carry `"deeper"`: an optional short paragraph one depth level below the
+lesson, shown behind a "Go deeper" button.
 
 ## Lesson scenes
 
-Use two or three different types in one lesson. The best order is usually
-story, then a step-through or custom scene, then a playground.
+Mix the types: no more than two scenes of the same type in one lesson. A good order is a
+story first, then the scene where the concept happens (a step-through, or the custom scene
+in the arcade look), then a playground. Fill any remaining slots with `card` scenes: a
+prerequisite the user needs first, or one gotcha worth knowing.
 
 ### `story`: a real situation the concept solves
 
@@ -147,3 +149,6 @@ the tempting wrong one is wrong.
 - **Wrong options are real mistakes** a learner would make, not jokes.
 - **Check your own answers.** Work out every `results` entry and every `predict` option by
   hand or by running the code. A wrong answer key is worse than no quiz.
+- **Show what the code really prints**: the same values, units and row order as the real
+  output. (pandas `groupby` lists groups in sorted order, for example.) If the user's data
+  has bare numbers, don't add a `%`.

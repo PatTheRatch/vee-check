@@ -183,7 +183,8 @@ Every Vibe Check is logged so the user can see what they've covered and go back 
 - [x] **3. Quiz template:** `templates/quiz.html` as one file with no CDN, so it works on locked-down machines. **Lesson (click-through cards, tiny example, predict-the-output)** → MCQ → retry misses → reveal the pass code. Lengths come from the config. Mobile-friendly.
 - [x] **4. Skill:** finish `skills/vibe-check/SKILL.md`: when to trigger, how to write good questions (teach before you test; prediction over definitions; respect config for level and counts; first-run setup questions), the step-by-step flow.
 - [x] **5. Slash commands:** `/vibe-check:skip`, `/vibe-check:status`, `/vibe-check:config`. `vc.py` reads and writes the config.
-- [x] **6. Test it:** install the plugin locally and use it in `examples/pandas-playground` (for example, "load a CSV into a DataFrame and group by a column"). Fix whatever feels annoying.
+- [ ] **6. Test it:** install the plugin locally and use it in `examples/pandas-playground` (for example, "load a CSV into a DataFrame and group by a column"). Fix whatever feels annoying.
+  *Partly done: automated tests, browser click-throughs of all three looks, and a fresh agent following the skill cold all pass. Still to do by a person: install the plugin for real, confirm the hook blocks an edit in a live session, and take one whole Vibe Check start to finish.*
 - [x] **7. README + release:** install steps, a GIF/screenshot, tag v0.1.0.
 
 ## Open questions (bring up when you get to them, not before)

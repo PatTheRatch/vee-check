@@ -26,8 +26,10 @@ Then give it a payoff: a button, a total, a reveal that shows what the code line
 
 ## How to write it
 
-A custom scene is a lesson scene with `"type": "custom"`. Keep the code in two files next
-to the quiz JSON (much easier than escaping code inside JSON):
+A custom scene is a lesson scene with `"type": "custom"`. It counts as one of the lesson's
+scenes. Keep the code in two files in the same folder as the quiz JSON, named
+`<topic>.scene.html` and `<topic>.scene.js` (`start` prints the names). The file names in
+the JSON are relative to that folder. This is much easier than escaping code inside JSON:
 
 ```json
 { "type": "custom",
@@ -47,17 +49,21 @@ to the quiz JSON (much easier than escaping code inside JSON):
 
 The Next button is always there and always works. You never have to unlock it.
 
+`build` checks that the script parses (when `node` is installed) and tells you if it
+doesn't. It can't tell whether the scene makes sense, so read your script through once as
+the learner: can every button that starts disabled actually become enabled?
+
 ## The `vc` toolkit
 
 | Call | What it does |
 |---|---|
 | `vc.root` | The element holding your markup. Query inside it: `vc.root.querySelector('#sum')`. |
-| `vc.dragDrop({items, targets, accepts, onDrop, onReject})` | Makes `items` draggable onto `targets`. Works with mouse, touch, tap-then-tap and keyboard. `accepts(item, target)` returns true or false. `onDrop(item, target)` must move the item into place (for example `target.appendChild(item)`). `onReject(item, target)` is optional. Returns `{ place(item, target) }` for a "do it for me" button. |
+| `vc.dragDrop({items, targets, accepts, onDrop, onReject})` | Makes `items` draggable onto `targets`. Works with mouse, touch, tap-then-tap and keyboard. `accepts(item, target)` returns true or false. `onDrop(item, target)` must move the item into place (for example `target.appendChild(item)`). `onReject(item, target)` is optional. It plays the drop and reject sounds and the shake itself, so don't add your own. Returns `{ place(item, target) }` for a "do it for me" button. |
 | `vc.say(text, mood)` | Vee, the mascot, says something. `mood` is `'happy'`, `'sad'` or `''`. |
 | `vc.done(text)` | Call when the learner has finished the activity. Makes Next glow; `text` is optional and is said by Vee. |
 | `vc.burst(element, count)` | Confetti from an element. |
-| `vc.roll(element, from, to, ms, suffix)` | Counts a number up inside an element: `vc.roll(el, 0, 9, 600, '%')`. |
-| `vc.flip(container, change)` | Runs `change()` (which reorders the container's children) and animates each child from its old place to its new one. |
+| `vc.roll(element, from, to, ms, suffix)` | Counts a number up inside an element: `vc.roll(el, 0, 9, 600)`. `suffix` is optional (`'%'`, `' rows'`). |
+| `vc.flip(container, change)` | Runs `change()` (which reorders the container's children) and animates each child from its old place to its new one. Works on any container inside `vc.root`, including a `buckets` grid. |
 | `vc.sfx.click() / drop() / good() / bad() / nope() / crush() / tick()` | Sound effects. Silent unless the user turned sound on. |
 | `vc.calm()` | True when the user asked for no motion. `burst`, `roll` and `flip` already respect it; check it before any animation of your own. |
 | `vc.fmt(text)`, `vc.esc(text)` | Turn lesson-style text (backticks, bold) or raw text into safe HTML. |
@@ -67,7 +73,8 @@ The Next button is always there and always works. You never have to unlock it.
 These classes already look right in the page, so use them before writing CSS:
 
 - Layout and text: `row` (centered button row), `muted`, `small`, `center`, `hl` (highlight a piece of code).
-- Buttons: `btn`, `btn ghost`, `pill`.
+- Buttons: `btn`, `btn ghost`, `pill`. A `disabled` button is dimmed for you, and the
+  `hidden` attribute hides any element.
 - Code: `<pre>` and `<code>`.
 - Drag pieces: `tray` (where items start), `chip` (a draggable item), `buckets` (a grid of
   targets), `bucket` (one target, put a `<div class="pile">` inside for dropped chips),
@@ -79,7 +86,8 @@ These classes already look right in the page, so use them before writing CSS:
 ## Rules that keep it safe
 
 1. **Never touch anything outside `vc.root`.** No `document.body`, no header, no quiz, no
-   storage, no network, no timers that run forever.
+   storage, no network. One-off `setTimeout` calls are fine; no `setInterval` or loops
+   that keep running after the learner moves on.
 2. **No pass code logic.** You don't have the code and must not look for it.
 3. **Always offer a way through**: a "Do it for me" button, or accept the learner pressing
    Next without finishing.
@@ -94,4 +102,5 @@ These classes already look right in the page, so use them before writing CSS:
 `examples/pandas-playground/quiz-example/` in the plugin holds the groupby scene:
 `pandas-groupby.scene.html` (a tray of six chips and three buckets) and
 `pandas-groupby.scene.js` (about 35 lines using `vc.dragDrop`, `vc.roll` and `vc.done`).
-Read both before writing your first scene.
+Read both before writing your first scene, for the shape. Then design your own
+interaction for the topic in front of you.
