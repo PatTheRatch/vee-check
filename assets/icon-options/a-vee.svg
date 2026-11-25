@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Vibe Check icon option A: Vee the mascot</title>
+  <rect width="512" height="512" rx="112" fill="#12141d"/>
+  <defs>
+    <radialGradient id="body" cx="34%" cy="26%" r="80%">
+      <stop offset="0" stop-color="#c9bbff"/><stop offset=".55" stop-color="#8b5cf6"/><stop offset="1" stop-color="#5b21b6"/>
+    </radialGradient>
+  </defs>
+  <path d="M256 104c96 0 164 66 164 152 0 92-62 158-164 158S92 348 92 256c0-86 68-152 164-152z" fill="url(#body)"/>
+  <ellipse cx="200" cy="232" rx="34" ry="40" fill="#fff"/><ellipse cx="312" cy="232" rx="34" ry="40" fill="#fff"/>
+  <ellipse cx="210" cy="240" rx="15" ry="18" fill="#12141d"/><ellipse cx="322" cy="240" rx="15" ry="18" fill="#12141d"/>
+  <path d="M206 318l36 34 66-70" fill="none" stroke="#12141d" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
