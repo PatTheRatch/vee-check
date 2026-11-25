@@ -231,8 +231,45 @@ class CliTests(Base):
         self.assertIn("On the learning list: pandas groupby", out)
         self.assertIn("Already passed", self.vc("start", "Flask routes")[1])
         listing = self.vc("concepts")[1]
-        self.assertIn("Flask routes: known", listing)
-        self.assertIn("pandas groupby: on the learning list", listing)
+        self.assertIn("Flask routes [code]: known", listing)
+        self.assertIn("pandas groupby [code]: on the learning list", listing)
+
+    def test_classic_is_the_default_look(self):
+        self.start_and_build()
+        self.assertEqual(self.page_data()[0]["look"], "classic")
+
+    def test_tracks_switch_lessons_on_and_off(self):
+        self.assertEqual(self.vc("config", "set", "tracks", "domain, architecture")[0], 0)
+        self.assertEqual(self.vc("config", "set", "tracks", "vibes")[0], 1)
+        code, out = self.vc("start", "list comprehensions")              # code track by default: switched off
+        self.assertEqual(code, 0)
+        self.assertIn("switched off", out)
+        self.assertEqual(self.gate(self.project / "app.py")[0], 0)
+        self.vc("concepts", "add", "tracking error", "--track", "domain")
+        self.assertIn("(domain track)", self.vc("start", "tracking error")[1])   # picked up from the concept list
+        self.assertEqual(self.gate(self.project / "app.py")[0], 2)
+
+    def test_a_disputed_answer_is_logged_as_a_possible_issue_not_a_miss(self):
+        self.vc("start", "tracking error", "--track", "domain")
+        content = {"lesson": [], "questions": [
+            {"type": "expect", "prompt": "Is tracking error annualized here?", "source": "risk.py:42",
+             "options": ["Yes, times sqrt(252)", "No, it is daily"], "answer": 1, "why": "risk.py returns the daily figure."},
+            {"type": "choice", "prompt": "p", "options": ["a", "b"], "answer": 0, "why": "w"}]}
+        (self.project / ".vibe-check" / "quizzes" / "tracking-error.json").write_text(json.dumps(content))
+        self.assertEqual(self.vc("build")[0], 0)
+        data, _ = self.page_data("tracking-error")
+        self.assertEqual(data["track"], "domain")
+        code = base64.b64decode(data["code"]).decode()
+        status, out = self.vc("unlock", code + ".0d-0")                   # picked "Yes", then disputed the reveal
+        self.assertEqual(status, 0, out)
+        self.assertIn("POSSIBLE ISSUE (question 1)", out)
+        self.assertIn("The user expected: Yes, times sqrt(252)", out)
+        self.assertIn("risk.py:42", out)
+        self.assertIn("+90 XP", out)                                      # 50 + 20 + 20: the dispute is not a miss
+        entry = json.loads((self.home / "history.jsonl").read_text().splitlines()[-1])
+        self.assertEqual((entry["track"], entry["questions"][0]["disputed"], entry["questions"][0]["missed"]), ("domain", True, False))
+        self.assertIn("Is tracking error annualized here?", self.vc("issues")[1])
+        self.assertIn("1 possible issue found", (self.home / "log.html").read_text())
 
     def test_commands_find_the_project_from_a_subfolder(self):
         self.vc("start", "groupby")

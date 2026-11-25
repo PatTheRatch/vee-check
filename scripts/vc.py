@@ -52,7 +52,8 @@ XP_PASS, XP_FIRST_TRY, XP_RETRY, XP_PER_LEVEL = 50, 20, 10, 250
 # setting: (default, allowed values or a (low, high) range, what it does)
 SETTINGS = {
     "style": ("concepts", ["concepts", "hands_on"], "concepts = understand it well enough to explain it; hands_on = also write a small piece yourself"),
-    "look": ("arcade", ["arcade", "classic", "plain"], "arcade = custom interactive lesson, most tokens and slowest; classic = animated cards; plain = one simple page, fewest tokens"),
+    "look": ("classic", ["arcade", "classic", "plain"], "classic = animated cards; arcade = custom interactive lesson, most tokens and slowest; plain = one simple page, fewest tokens"),
+    "tracks": (["domain", "architecture", "code"], "tracks", "which kinds of concept get lessons and gates: domain (what the system does in business terms), architecture (how the pieces fit), code (language, libraries, patterns)"),
     "level": ("beginner", ["beginner", "intermediate", "advanced"], "how much the lesson assumes and how hard the questions are"),
     "zoom": ("how", ["what", "how", "weeds"], "starting depth: what = what it does and why; how = the moving parts; weeds = the actual lines and edge cases"),
     "lesson": (True, [True, False], "show the Learn part before the Check"),
@@ -62,7 +63,8 @@ SETTINGS = {
     "trigger": ("new_concepts", ["new_concepts", "big_concepts_only", "manual"], "when a Vibe Check starts"),
 }
 SCENE_TYPES = {"story", "steps", "playground", "card", "custom"}
-QUESTION_TYPES = {"choice", "predict", "explain", "order"}
+QUESTION_TYPES = {"choice", "predict", "explain", "order", "expect"}
+TRACKS = ["domain", "architecture", "code"]
 CONCEPT_GROUPS = ["big_picture", "tools", "techniques"]
 CONCEPT_STATUSES = ["learning", "known", "gate"]
 
@@ -164,6 +166,11 @@ def parse_setting(key, text):
         raise ValueError(f'There is no setting called "{key}". Settings: {", ".join(SETTINGS)}.')
     _, allowed, _ = SETTINGS[key]
     word = text.strip().lower()
+    if key == "tracks":
+        chosen = [t for t in re.split(r"[\s,]+", word) if t]
+        if not chosen or any(t not in TRACKS for t in chosen):
+            raise ValueError(f'tracks is one or more of: {", ".join(TRACKS)} (for example: domain,architecture).')
+        return [t for t in TRACKS if t in chosen]
     if key == "pass_bar":
         if word == "all":
             return "all"
@@ -195,9 +202,9 @@ def config_command(state, args):
         if not is_set_up(state):
             print("Not set up yet: these are the built-in defaults. Ask the user the first-run questions.")
         return 0
-    if args.action != "set" or len(args.pair) != 2:
+    if args.action != "set" or len(args.pair) < 2:
         return fail('Use: config    or    config set KEY VALUE [--global]')
-    key, text = args.pair
+    key, text = args.pair[0], " ".join(args.pair[1:])
     try:
         value = parse_setting(key, text)
     except ValueError as problem:
@@ -393,7 +400,7 @@ def parse_trail(tail, questions):
     trails = []
     for number, question in enumerate(questions):
         marks = parts[number] if number < len(parts) else ""
-        marks = "" if marks == "x" else marks
+        marks = "" if marks == "x" else marks.replace("d", "")
         if question.get("type") == "order":
             trails.append(["right order" if m == "y" else "wrong order" for m in marks if m in "yn"])
         else:
@@ -402,15 +409,37 @@ def parse_trail(tail, questions):
     return trails
 
 
+def find_disputes(content, tail):
+    """Questions where the user said "that's not what it should do": possible bugs, not misses."""
+    questions = (content or {}).get("questions") or []
+    parts = tail.split("-") if tail else []
+    found = []
+    for number, (question, answers) in enumerate(zip(questions, parse_trail(tail, questions))):
+        if number < len(parts) and "d" in parts[number] and question.get("type") != "order":
+            options = question.get("options", [])
+            answer = question.get("answer")
+            found.append({
+                "question": number + 1, "prompt": question.get("prompt"),
+                "expected": answers[-1] if answers else None,
+                "code_does": options[answer] if isinstance(answer, int) and answer < len(options) else None,
+                "source": question.get("source"),
+            })
+    return found
+
+
 def add_history(state, pending, result, content=None, tail=""):
     questions = []
+    disputes = find_disputes(content, tail)
+    disputed = {d["question"] for d in disputes}
     if content:
-        for question, tries in zip(content["questions"], parse_trail(tail, content["questions"])):
+        for number, (question, tries) in enumerate(zip(content["questions"], parse_trail(tail, content["questions"])), 1):
+            argued = number in disputed
             questions.append({
                 "type": question["type"], "prompt": question["prompt"],
                 "options": question.get("options") or question.get("items"),
-                "answer": question.get("answer"), "why": question["why"],
-                "answers": tries, "tries": max(1, len(tries)), "missed": len(tries) > 1,
+                "answer": question.get("answer"), "why": question["why"], "source": question.get("source"),
+                "answers": tries, "tries": 1 if argued else max(1, len(tries)),
+                "missed": len(tries) > 1 and not argued, "disputed": argued,
             })
     now = datetime.now()
     entry = {
@@ -418,6 +447,7 @@ def add_history(state, pending, result, content=None, tail=""):
         "project": str(state.parent), "topic": pending.get("topic"), "slug": pending.get("slug"),
         "result": result, "kind": pending.get("kind", "lesson"), "gated": pending.get("gated", True),
         "look": pending.get("look"), "level": pending.get("level"), "zoom": pending.get("zoom"),
+        "track": pending.get("track", "code"), "possible_issues": disputes,
         "badge": (content or {}).get("badge"),
         "lesson": scenes_for("plain", content.get("lesson", [])) if content else [],
         "questions": questions, "answers_recorded": bool(tail),
@@ -443,12 +473,16 @@ def write_log_page():
         questions = entry.get("questions") or []
         missed = sum(1 for q in questions if q.get("missed"))
         detail = f"{len(questions) - missed} of {len(questions)} first try" if passed and questions else ""
+        issues = len(entry.get("possible_issues") or [])
+        if issues:
+            detail += f", {issues} possible {'issue' if issues == 1 else 'issues'} found"
         review = ""
         if passed and entry.get("review_file") and Path(entry["review_file"]).exists():
             review = f'<a href="{e(Path(entry["review_file"]).as_uri())}">Review</a>'
         rows.append(
             f"<tr><td>{e(str(entry.get('date', '')))}</td>"
             f"<td>{e(str(entry.get('badge') or '')) if passed else ''} {e(str(entry.get('topic', '')))}</td>"
+            f"<td>{e(str(entry.get('track') or 'code'))}</td>"
             f"<td>{'Passed' if passed else 'Skipped'}</td><td>{e(detail)}</td>"
             f"<td>{entry_xp(entry) or ''}</td><td>{e(Path(str(entry.get('project', ''))).name)}</td><td>{review}</td></tr>"
         )
@@ -471,10 +505,11 @@ th,td{{text-align:left;padding:.4rem 1rem .4rem 0;border-bottom:1px solid color-
   <div><b>{totals['passed']}</b>topics passed</div>
   <div><b>Level {totals['level']}</b>{totals['xp']} XP</div>
   <div><b>{totals['streak']}</b>day streak</div>
+  <div><b>{sum(len(x.get('possible_issues') or []) for x in entries)}</b>possible issues found</div>
 </div>
 <div class="wide"><table>
-<tr><th>Date</th><th>Topic</th><th>Result</th><th>Questions</th><th>XP</th><th>Project</th><th></th></tr>
-{''.join(rows) or '<tr><td colspan="7">Nothing yet. Your first Vibe Check will show up here.</td></tr>'}
+<tr><th>Date</th><th>Topic</th><th>Track</th><th>Result</th><th>Questions</th><th>XP</th><th>Project</th><th></th></tr>
+{''.join(rows) or '<tr><td colspan="8">Nothing yet. Your first Vibe Check will show up here.</td></tr>'}
 </table></div>
 </body></html>
 """
@@ -495,11 +530,17 @@ def in_progress(state):
     return None, None
 
 
-def start(state, topic, gated=True):
+def start(state, topic, gated=True, track=None):
     pending_file = state / "pending.json"
     slug = slugify(topic)
     if not slug:
         return fail("The topic needs at least one letter or number.")
+    config = load_config(state)
+    track = track or read_json(state / "concepts.json").get(slug, {}).get("track") or "code"
+    if gated and track not in config["tracks"]:
+        print(f'"{topic}" is a {track}-track concept, and that track is switched off in the settings.')
+        print("No Vibe Check needed. Gate: OPEN.")
+        return 0
     if pending_file.exists():
         current = read_json(pending_file).get("topic", "another topic")
         return fail(
@@ -510,16 +551,15 @@ def start(state, topic, gated=True):
         print(f'Already passed: "{topic}". No quiz needed. Gate: OPEN.')
         return 0
 
-    config = load_config(state)
     quizzes = Path(STATE_DIR) / "quizzes"
     write_json(pending_file if gated else state / "practice.json", {
-        "topic": topic, "slug": slug,
+        "topic": topic, "slug": slug, "track": track,
         "content": str(quizzes / f"{slug}.json"), "quiz": str(quizzes / f"{slug}.html"),
         "started": date.today().isoformat(),
     })
     (state / "quizzes").mkdir(exist_ok=True)
     if gated:
-        print(f'Vibe Check started: "{topic}"')
+        print(f'Vibe Check started: "{topic}" ({track} track)')
         print(f"Gate: CLOSED. Edits outside {STATE_DIR}/ are blocked until the quiz is passed or skipped.")
         if read_json(state / "concepts.json").get(slug, {}).get("status") == "learning":
             print("Note: this concept is on the learning list (already in the code), which doesn't gate by default.")
@@ -567,7 +607,7 @@ def build(state, open_page=True):
     zoom = content.get("zoom") if content.get("zoom") in SETTINGS["zoom"][1] else config["zoom"]
     page_data = {
         "topic": pending["topic"], "look": look, "level": config["level"], "style": config["style"],
-        "gate": gated, "zoom": zoom,
+        "gate": gated, "zoom": zoom, "track": pending.get("track", "code"),
         "pass_bar": config["pass_bar"], "badge": content.get("badge"),
         "lesson": lesson, "questions": content["questions"], "stats": stats(read_history()),
     }
@@ -634,6 +674,12 @@ def unlock(state, pasted):
         print(f"+{entry_xp(entry)} XP. Level {totals['level']}, {totals['xp']} XP, {totals['streak']}-day streak.")
         if not tail:
             print("(Only the short code was pasted, so the answers were not recorded.)")
+        for issue in entry.get("possible_issues") or []:
+            print(f"POSSIBLE ISSUE (question {issue['question']}): {issue['prompt']}")
+            print(f"  The user expected: {issue['expected']}")
+            print(f"  The code does:     {issue['code_does']}" + (f"   [{issue['source']}]" if issue.get("source") else ""))
+        if entry.get("possible_issues"):
+            print("Check the code against what the user expected and report back before building on it. They may be right.")
     except OSError as problem:  # the gate must open even if the log can't be written
         print(f"(The Learning Log could not be updated: {problem})")
     return 0
@@ -700,6 +746,8 @@ def concepts_command(state, args):
         entry["topic"] = topic
         if args.group:
             entry["group"] = args.group
+        if args.track:
+            entry["track"] = args.track
         if args.status:
             entry["status"] = args.status
         if args.weight is not None:
@@ -709,7 +757,7 @@ def concepts_command(state, args):
             passed = read_json(state / "passed.json")
             passed.setdefault(slug, {"topic": topic, "passed": date.today().isoformat(), "via": "marked known"})
             write_json(state / "passed.json", passed)
-        print(f'Concept saved: "{topic}" ({entry.get("group", "no group")}, {entry["status"]})')
+        print(f'Concept saved: "{topic}" ({entry.get("group", "no group")}, {entry.get("track", "code")} track, {entry["status"]})')
         return 0
     if args.action:
         return fail('Use: concepts    or    concepts add "<topic>" [--group ...] [--status ...] [--weight N]')
@@ -723,7 +771,22 @@ def concepts_command(state, args):
             continue
         print({"big_picture": "Big picture", "tools": "Tools", "techniques": "Techniques", None: "Other"}[group] + ":")
         for concept in sorted(members, key=lambda c: -(c.get("weight") or 0)):
-            print(f"  - {concept.get('topic')}: {about.get(concept.get('status'), concept.get('status'))}")
+            print(f"  - {concept.get('topic')} [{concept.get('track', 'code')}]: {about.get(concept.get('status'), concept.get('status'))}")
+    return 0
+
+
+def issues_command(state):
+    """Possible bugs the user flagged in this project: places where they expected the code to do something else."""
+    found = [(entry, issue) for entry in read_history() if entry.get("project") == str(state.parent)
+             for issue in entry.get("possible_issues") or []]
+    if not found:
+        print("No possible issues flagged in this project.")
+        return 0
+    print(f"Possible issues flagged in this project ({len(found)}):")
+    for entry, issue in found:
+        print(f"- {entry.get('date')}, {entry.get('topic')}: {issue['prompt']}")
+        print(f"    expected: {issue['expected']}")
+        print(f"    code does: {issue['code_does']}" + (f"   [{issue['source']}]" if issue.get("source") else ""))
     return 0
 
 
@@ -794,6 +857,7 @@ def main():
     start_args = commands.add_parser("start", help="begin a Vibe Check on a topic (closes the gate)")
     start_args.add_argument("topic", nargs="+", help="the concept, for example: pandas groupby")
     start_args.add_argument("--no-gate", action="store_true", help="a lesson that doesn't block edits")
+    start_args.add_argument("--track", choices=TRACKS, help="what kind of concept this is (default: code)")
     build_args = commands.add_parser("build", help="build the quiz page from the content and open it")
     build_args.add_argument("--no-open", action="store_true", help="don't open the browser")
     unlock_args = commands.add_parser("unlock", help="check a pass code (opens the gate if it matches)")
@@ -805,10 +869,12 @@ def main():
     config_args.add_argument("pair", nargs="*", help="KEY VALUE")
     config_args.add_argument("--global", dest="everywhere", action="store_true", help="save as the default for every project")
     commands.add_parser("topics", help="list what has been covered")
+    commands.add_parser("issues", help="possible bugs the user flagged during quizzes in this project")
     concept_args = commands.add_parser("concepts", help="this project's concept list, or: concepts add \"<topic>\"")
     concept_args.add_argument("action", nargs="?", help="add")
     concept_args.add_argument("topic", nargs="*")
     concept_args.add_argument("--group", choices=CONCEPT_GROUPS)
+    concept_args.add_argument("--track", choices=TRACKS)
     concept_args.add_argument("--status", choices=CONCEPT_STATUSES)
     concept_args.add_argument("--weight", type=int, help="how much of the code leans on it, 1 to 10")
     review_args = commands.add_parser("review", help="reopen a passed topic with no gate")
@@ -818,7 +884,7 @@ def main():
 
     state = project_root() / STATE_DIR
     if args.command == "start":
-        return start(state, " ".join(args.topic).strip(), gated=not args.no_gate)
+        return start(state, " ".join(args.topic).strip(), gated=not args.no_gate, track=args.track)
     if args.command == "build":
         return build(state, not args.no_open)
     if args.command == "unlock":
@@ -831,6 +897,8 @@ def main():
         return topics(state)
     if args.command == "concepts":
         return concepts_command(state, args)
+    if args.command == "issues":
+        return issues_command(state)
     if args.command == "review":
         return review(state, " ".join(args.topic), not args.no_open)
     return status(state)

@@ -38,7 +38,7 @@ install from this repo, so keep anything specific to Patrick out of the plugin f
 | **If the gate breaks** | Fail closed only while a quiz is pending (error → exit 2 with a "gate is broken" message). With no quiz pending, an error lets the edit through, so a bug can't lock up normal editing. |
 | **After a skip** | `skip` only opens the gate this once. The concept is not marked as passed, so it gets quizzed again the next time it comes up. |
 | **Concepts vs. hands-on** | A `style` setting. **`concepts` (default):** the goal is understanding what the code does well enough to explain it to someone, no typing code. **`hands_on`:** learn by doing, where the user writes a small piece of the code themselves. Never force hands-on when the style is `concepts`. |
-| **Three looks** | The quiz page comes in three looks and the user picks one with the `look` setting: **`arcade`** (the overkill one: sound, mascot, drag games, combo, fireworks; Patrick's favourite and the default), **`classic`** (the original prototype) and **`plain`** (one scrolling page, no animation, no game pieces). Same lesson and questions in all three; only the presentation changes. |
+| **Three looks** | The quiz page comes in three looks and the user picks one with the `look` setting: **`arcade`** (the overkill one: sound, mascot, drag games, combo, fireworks; Patrick's favourite, set as his own global default), **`classic`** (the original prototype, **the default for everyone else**) and **`plain`** (one scrolling page, no animation, no game pieces). Same lesson and questions in all three; only the presentation changes. |
 | **Adjustable** | Difficulty, number of questions, pass bar, lesson on/off and trigger sensitivity are all settings. Asked at first run in a project, changeable anytime (see Settings below). |
 
 ## Architecture (v1, as built)
@@ -49,13 +49,14 @@ skills/vibe-check/SKILL.md      tells Claude WHEN and HOW to run a vibe check
   quiz-format.md                the quiz content format (lesson scenes, question types)
   arcade-scenes.md              how to write a custom scene for the arcade look
   existing-projects.md          scan, tour and placement quiz for projects that already have code
+  tracks-and-review.md          the three tracks, expectation questions, possible issues
 hooks/hooks.json                PreToolUse hook on Edit|Write|MultiEdit|NotebookEdit
 scripts/gate.py                 the hook: blocks edits while a quiz is pending (exit 2 + message)
-scripts/vc.py                   CLI: start / build / unlock / skip / status / config / topics / review / concepts
+scripts/vc.py                   CLI: start / build / unlock / skip / status / config / topics / review / concepts / issues
 templates/core.js               shared quiz rules, pass code and answer trail; stamped into every page
 templates/game.html             the arcade and classic looks (one file, arcade switches the extras on)
 templates/plain.html            the plain look
-commands/                       slash commands: skip, status, config, topics, review, scan, tour
+commands/                       slash commands: skip, status, config, topics, review, scan, tour, check, issues
 examples/pandas-playground/     sample data plus a complete worked quiz (content + custom scene)
 prototypes/                     the three hand-built groupby pages the looks came from
 tests/test_vibe_check.py        gate and CLI tests (python3 -m unittest discover -s tests)
@@ -95,7 +96,8 @@ project (AskUserQuestion), and changeable anytime with `/vibe-check:config` or b
 {
   "style": "concepts",          // concepts = understand it well enough to explain it to someone (default)
                                 //   hands_on = also learn by doing: write a small piece of the code yourself
-  "look": "arcade",             // arcade | classic | plain: how the quiz page looks and feels (see prototypes/)
+  "look": "classic",            // classic | arcade | plain: how the quiz page looks and feels (see prototypes/)
+  "tracks": ["domain", "architecture", "code"],  // which kinds of concept get lessons and gates
   "level": "beginner",          // beginner | intermediate | advanced: changes how much the lesson assumes and how hard questions are
   "zoom": "how",                // what | how | weeds: starting depth (adaptive from there)
   "lesson": true,               // show the Learn part before the Check
@@ -144,6 +146,17 @@ user learns something **or the code is wrong**. Design rules:
 - Review findings go in the history and show on the Learning Log ("2 possible issues found").
 - Suggested scope: v2, after the core gate/quiz/tracking loop works. The `domain` track and
   expectation questions are the natural place to start.
+
+**First stab, built (tracks + review mode):**
+- `tracks` setting; `start --track`, `concepts add --track`; a switched-off track never gates.
+- `expect` question type (answer = what the code actually does) and an optional `source` on any question.
+- "That's not what it should do" button after any wrong reveal (not on put-in-order). It
+  travels back in the pasted code as a `d` mark, is not a miss, and keeps full XP.
+- `unlock` prints each POSSIBLE ISSUE; `vc.py issues` and `/vibe-check:issues` list them; the
+  Learning Log counts them. `/vibe-check:check <area>` runs a no-gate review quiz.
+- Worked domain example: `examples/pandas-playground/quiz-example-domain/`.
+- **Not built yet:** nothing *enforces* that answer keys come from running the code (it is a
+  rule in the skill); issues have no open/resolved state; no architecture-track example.
 
 ## Starting late on an existing project (decided)
 1. **Scan → concept inventory.** Read imports, libraries, file types and patterns, then list the

@@ -478,7 +478,7 @@ let quiz;
 function startQuiz(){quiz=new VC.Quiz();setCombo(0);if(LESSON.length)say('Quiz time. Miss one and it comes back at the end.','',4000);showQ()}
 function showQ(){
   const my=enter(),qi=quiz.index,q=quiz.question;progress(LESSON.length+1+qi);
-  const tag=`<div class="tag">Check ${qi+1} of ${QN}${quiz.round>1?' (retry)':''}</div>`;
+  const tag=`<div class="tag">Check ${qi+1} of ${QN}${q.type==='expect'?': what do you expect?':''}${quiz.round>1?' (retry)':''}</div>`;
   if(q.type==='order'){
     let cur=VC.scramble(q.items.length,qi+q.items.length);
     h(tag+`<h2>${fmt(q.prompt)}</h2>${q.code?`<pre>${codeHTML(q.code)}</pre>`:''}<p class="muted small">Drag, or use the arrows.</p><div class="drag" id="drag"></div><div id="fb"></div><div class="nav"><span></span><button class="btn" id="check" data-enter>Check order</button></div>`);
@@ -525,7 +525,15 @@ function answered(ok,qi,q,el,mark){
   if(ok){setCombo(combo+1);addXP(firstGo?20:10,el);if(A)burst(...mid(el),44,8);sfx.good();say(CHEER[Math.floor(Math.random()*CHEER.length)],'happy')}
   else{setCombo(0);sfx.bad();say(OOPS[Math.floor(Math.random()*OOPS.length)],'sad');
     if(A&&!calm){const w=$('#wrap');w.classList.remove('quake');void w.offsetWidth;w.classList.add('quake')}}
-  const fb=$('#fb');fb.className='fb '+(ok?'good':'bad');fb.innerHTML=(ok?'<b>Nailed it.</b> ':'<b>Not quite.</b> ')+fmt(q.why);
+  const exp=q.type==='expect',fb=$('#fb');fb.className='fb '+(ok?'good':'bad');
+  fb.innerHTML=(ok?(exp?'<b>That\'s what the code does.</b> ':'<b>Nailed it.</b> '):(exp?'<b>The code does something else.</b> ':'<b>Not quite.</b> '))+fmt(q.why)
+    +(q.source?` <span class="muted small">(${esc(q.source)})</span>`:'')
+    +(!ok&&q.type!=='order'?'<div style="margin-top:10px"><button class="pill" id="dispute">That\'s not what it should do</button></div>':'');
+  // A dispute is a possible bug in the code, not a miss: it is logged and doesn't count against the user.
+  if($('#dispute'))$('#dispute').onclick=()=>{quiz.dispute(qi);addXP(firstGo?20:10,$('#dispute'));
+    fb.className='fb';fb.style.border='1px solid var(--line)';
+    fb.innerHTML='<b>Logged as a possible issue.</b> It doesn\'t count against you. Claude will check the code against what you expected and report back.';
+    say('Good catch, maybe. Flagged it.','happy');sfx.click()};
   const nav=$('.nav');nav.innerHTML=`<span></span><button class="btn${A?' glow':''}" id="nextQ" data-enter>Next</button>`;
   $('#nextQ').onclick=()=>{
     const what=quiz.next();

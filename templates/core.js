@@ -31,6 +31,7 @@ const VC = (() => {
       this.queue = this.qs.map((_, i) => i); this.retry = []; this.round = 1; this.pos = 0;
       this.trail = this.qs.map(() => []);   // every answer given, per question
       this.right = new Set();
+      this.disputed = new Set();
     }
     get index() { return this.queue[this.pos]; }
     get question() { return this.qs[this.index]; }
@@ -45,8 +46,11 @@ const VC = (() => {
       this.queue = this.retry; this.retry = []; this.round++; this.pos = 0;
       return 'retry';
     }
-    firstTry() { return this.qs.filter((_, i) => this.right.has(i) && this.trail[i].length === 1).length; }
-    xp() { return this.qs.reduce((n, _, i) => n + (this.right.has(i) ? (this.trail[i].length === 1 ? 20 : 10) : 0), 0); }
+    // "That's not what it should do": a possible bug in the code, not a miss. Marked "d" in the trail.
+    dispute(qi) { this.trail[qi].push('d'); this.disputed.add(qi); this.right.add(qi); this.retry = this.retry.filter(x => x !== qi); }
+    clean(i) { return this.disputed.has(i) || this.trail[i].length === 1; }
+    firstTry() { return this.qs.filter((_, i) => this.right.has(i) && this.clean(i)).length; }
+    xp() { return this.qs.reduce((n, _, i) => n + (this.right.has(i) ? (this.clean(i) ? 20 : 10) : 0), 0); }
     // What the Copy button gives: the pass code, a dot, then the answer trail.
     resultCode() { return passCode() + '.' + this.trail.map(a => a.join('') || 'x').join('-'); }
   }

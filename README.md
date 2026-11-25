@@ -36,7 +36,7 @@ On versions before 2.1.275, do it in two steps:
 It needs Python 3.9 or later on your PATH as `python3`. Nothing else: no packages, no
 network, and the quiz pages are single files that open offline.
 
-The first time it runs in a project it asks three quick questions (look, style, level).
+The first time it runs in a project it asks four quick questions (look, tracks, style, level).
 
 ## Three looks
 
@@ -44,8 +44,8 @@ Same lesson and questions in each. Pick one with `/vibe-check:config look <name>
 
 | Look | What you get | Cost |
 |---|---|---|
-| `arcade` (default) | A custom interactive scene built for the topic, plus sound, a mascot, combos and a vault that opens when you pass | Most tokens, slowest to appear |
-| `classic` | Animated lesson cards and a quiz, with XP and streaks | Middle |
+| `classic` (default) | Animated lesson cards and a quiz, with XP and streaks | Middle |
+| `arcade` | A custom interactive scene built for the topic, plus sound, a mascot, combos and a vault that opens when you pass | Most tokens, slowest to appear |
 | `plain` | One simple page: read, answer, done | Fewest tokens, fastest |
 
 <p>
@@ -56,6 +56,29 @@ Same lesson and questions in each. Pick one with `/vibe-check:config look <name>
 **About token use:** every Vibe Check adds a lesson's worth of work to your task, because
 Claude writes the lesson for your topic. `arcade` adds the most, since it also writes a small
 interactive scene. If usage matters, use `plain`, or set `trigger` to `big_concepts_only`.
+
+## Learn the platform, not just the code
+
+Not everyone cares how Python works. Every concept sits on one of three **tracks**, and you
+choose which ones you get lessons on:
+
+| Track | What it teaches |
+|---|---|
+| `domain` | What your system does in business terms: the rules, the math, the data flow |
+| `architecture` | How the pieces fit together |
+| `code` | The language, libraries and patterns |
+
+`/vibe-check:config tracks domain,architecture` turns the code lessons off.
+
+## A quiz that can find bugs
+
+Domain lessons ask what you **expect** before showing what the code really does ("should a
+blank weight stop the script?"). If the reveal isn't what it should do, press
+**That's not what it should do**. It doesn't count against you. It's logged as a possible
+issue, and Claude checks the code against your expectation and reports back. Either you
+learn something or the code is wrong.
+
+`/vibe-check:check <area>` runs one of these reviews on purpose, with no gate.
 
 ## Commands
 
@@ -68,6 +91,8 @@ interactive scene. If usage matters, use `plain`, or set `trigger` to `big_conce
 | `/vibe-check:review <topic>` | Replay a passed lesson and quiz, with no gate |
 | `/vibe-check:scan` | For a project that already has code: list the concepts it uses |
 | `/vibe-check:tour` | A guided lesson on how the whole project fits together |
+| `/vibe-check:check <area>` | Review part of the code as a quiz on what you expect it to do |
+| `/vibe-check:issues` | The possible bugs you flagged during quizzes |
 
 You can also just say it: "teach me decorators", "make it easier", "what have we covered?".
 
@@ -78,6 +103,7 @@ Saved per project in `.vibe-check/config.json`. Add `--global` to make one your 
 | Setting | Values | What it does |
 |---|---|---|
 | `look` | `arcade`, `classic`, `plain` | How the lesson page looks and feels |
+| `tracks` | any of `domain`, `architecture`, `code` | Which kinds of concept get lessons and gates |
 | `style` | `concepts`, `hands_on` | `concepts`: understand it well enough to explain it. `hands_on`: also write a small piece yourself |
 | `level` | `beginner`, `intermediate`, `advanced` | How much the lesson assumes |
 | `zoom` | `what`, `how`, `weeds` | Starting depth. It goes deeper when you ace things and simpler when you miss |

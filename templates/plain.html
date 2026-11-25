@@ -59,7 +59,7 @@ details{margin:.5rem 0}
     } else {
       body += q.options.map((o, n) => `<label><input type="radio" name="q${i}" value="${n}"> ${q.type === 'predict' ? `<pre>${esc(o)}</pre>` : fmt(o)}</label>`).join('');
     }
-    return `<fieldset id="q${i}"><legend>${i + 1}. ${fmt(q.prompt)}</legend>${body}<p class="fb" role="status"></p></fieldset>`;
+    return `<fieldset id="q${i}"><legend>${i + 1}. ${q.type === 'expect' ? 'What do you expect? ' : ''}${fmt(q.prompt)}</legend>${body}<p class="fb" role="status"></p></fieldset>`;
   }
 
   const n = quiz.qs.length, bar = quiz.need === n ? `all ${n === 1 ? 'of it' : n}` : `${quiz.need} of ${n}`;
@@ -87,10 +87,26 @@ details{margin:.5rem 0}
         ok = +pick === q.answer; mark = pick;
       }
       quiz.record(i, mark, ok);
-      fb.innerHTML = (ok ? 'Correct. ' : 'Not quite. ') + fmt(q.why) + (ok ? '' : ' Try this one again.');
+      const exp = q.type === 'expect';
+      fb.innerHTML = (ok ? (exp ? 'That is what the code does. ' : 'Correct. ') : (exp ? 'The code does something else. ' : 'Not quite. ')) + fmt(q.why)
+        + (q.source ? ` (${esc(q.source)})` : '') + (ok ? '' : ' Try this one again.')
+        + (!ok && q.type !== 'order' ? ` <button type="button" data-dispute="${i}">That's not what it should do</button>` : '');
       if (ok) box.disabled = true;
       else { box.querySelectorAll('input').forEach(x => x.checked = false); box.querySelectorAll('select').forEach(x => x.value = ''); }
     });
+    settle();
+  });
+  // "That's not what it should do": logged as a possible bug in the code, not a miss.
+  form.addEventListener('click', e => {
+    const i = e.target.dataset && e.target.dataset.dispute;
+    if (i === undefined) return;
+    quiz.dispute(+i);
+    const box = document.getElementById('q' + i);
+    box.querySelector('.fb').textContent = "Logged as a possible issue. It doesn't count against you. Claude will check the code against what you expected.";
+    box.disabled = true;
+    settle();
+  });
+  function settle() {
     const passed = quiz.right.size >= quiz.need;
     document.getElementById('result').textContent = `${quiz.right.size} of ${n} correct.` + (passed ? '' : ' Fix the ones marked "Not quite" and check again.');
     if (!passed) return;
@@ -103,7 +119,7 @@ details{margin:.5rem 0}
       document.getElementById('copy').onclick = ev => VC.copy(quiz.resultCode(), ev.target);
     }
     pass.hidden = false; pass.scrollIntoView();
-  });
+  }
 })();
 </script>
 </body>

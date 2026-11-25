@@ -127,10 +127,19 @@ the tempting wrong one is wrong.
   "why": "groupby plus sum gives one total **per group**. Sorting does no math." }
 
 { "type": "choice", "prompt": "Which of these would need groupby?", "options": ["...", "..."], "answer": 0, "why": "..." }
+
+{ "type": "expect", "prompt": "One holding has a blank weight. What should the script do?",
+  "source": "portfolio.py:7",
+  "options": ["Stop with an error", "Quietly leave it out and carry on"],
+  "answer": 1, "why": "`sum` skips blank values without saying anything." }
 ```
 
 - `answer` is the position of the right option, **counting from 0**. Vary it: don't always
   put the right answer in the same slot.
+- `expect`: asks what the user expects before revealing what the code does. `answer` is what
+  the code **actually** does. See tracks-and-review.md.
+- `source`: optional on any question, the file and line the answer came from (`"risk.py:42"`).
+  Use it whenever the question is about the project's own code.
 - `predict`: options are possible outputs, shown in monospace. Use `\n` for line breaks.
 - `order`: write `items` in the **correct** order. The page scrambles them.
 - `explain`: a coworker asks, the user picks the best plain-English reply. `from` and

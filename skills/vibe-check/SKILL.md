@@ -1,6 +1,6 @@
 ---
 name: vibe-check
-description: Before writing code that uses a concept the user hasn't learned yet, run a Vibe Check, a short browser lesson and quiz the user must pass before any file edits. Use at the start of any coding task that introduces a new library, pattern, data structure, language feature or tool to this project, and when the user says "teach me X", "vibe check", "what have we covered", "review X", "scan this project", "make it easier", "fewer questions" or asks to skip a quiz.
+description: Before writing code that uses a concept the user hasn't learned yet, run a Vibe Check, a short browser lesson and quiz the user must pass before any file edits. Use at the start of any coding task that introduces a new library, pattern, data structure, language feature, tool, business rule or calculation to this project, and when the user says "teach me X", "vibe check", "what have we covered", "review X", "check this code with me", "scan this project", "make it easier", "fewer questions" or asks to skip a quiz.
 ---
 
 # Vibe Check
@@ -46,7 +46,9 @@ second Vibe Check in the same task when the second concept is as big as the firs
 
 ## The flow
 
-1. **Start.** `vc start "<topic>"`. Use a short, specific topic ("pandas groupby"). This
+1. **Start.** `vc start "<topic>" --track <domain|architecture|code>`. Use a short, specific
+   topic ("pandas groupby"). The track says what kind of concept it is (see "Tracks"); if the
+   user has switched that track off, `start` says so and there is nothing more to do. This
    closes the gate and prints the settings and the path for the quiz content. If it says
    "Already passed", skip the rest and get on with the work. Also run `vc topics` once: it
    shows how the user did on recent quizzes, which sets the depth (see "Depth" below).
@@ -64,7 +66,8 @@ second Vibe Check in the same task when the second concept is as big as the firs
    loud, or give hints.
 6. **Unlock.** When the user pastes a code (it looks like `K7QM-2XPA.10-y-1`; the part after
    the dot is their answers), run `vc unlock <exactly what they pasted>`. If it says the
-   code doesn't match, tell them and wait again.
+   code doesn't match, tell them and wait again. If it prints a **POSSIBLE ISSUE**, the user
+   disagreed with what the code does: deal with that first (see "Review mode").
 7. **Build the thing.** The gate is open. Do the task. In one line, connect the first piece
    of code you write to what they just learned.
 
@@ -77,13 +80,16 @@ Ask these once per project with AskUserQuestion, then save each answer with
 `vc config set <key> <value>` (add `--global` if they want it everywhere):
 
 1. **Look** (`look`). Say what each costs:
+   - `classic` (the default): animated lesson cards and a quiz. Middle of the road.
    - `arcade`: a custom interactive lesson built for the topic, with sound, a mascot and
      game pieces. Uses the most tokens and takes the longest to appear.
-   - `classic`: animated lesson cards and a quiz. Middle of the road.
    - `plain`: one simple page. Fastest and cheapest.
-2. **Style** (`style`): `concepts` (understand it well enough to explain it, no typing
+2. **Tracks** (`tracks`, pick any): `domain` (what the system does in business terms),
+   `architecture` (how the pieces fit together), `code` (the language, libraries and
+   patterns). Someone who doesn't care about the code can leave `code` off.
+3. **Style** (`style`): `concepts` (understand it well enough to explain it, no typing
    code) or `hands_on` (also write a small piece yourself).
-3. **Level** (`level`): `beginner`, `intermediate` or `advanced`.
+4. **Level** (`level`): `beginner`, `intermediate` or `advanced`.
 
 Leave the other settings at their defaults unless the user asks. Later, when the user says
 things like "make it easier", "fewer questions", "go plainer" or "only quiz me on big
@@ -117,6 +123,22 @@ using `vc topics`, which shows how the user did recently:
 Put `"zoom"` in the content to record the depth you wrote at. Where there is something
 worth saying one level down, give a scene a `"deeper"` paragraph for its "Go deeper"
 button (aim for at least one per lesson; on a custom scene it goes on the scene itself).
+
+## Tracks and review mode
+
+Read [tracks-and-review.md](tracks-and-review.md) before your first domain or architecture
+lesson, and whenever `unlock` prints a POSSIBLE ISSUE. The essentials:
+
+- **Tracks.** Every concept is `domain`, `architecture` or `code`. Only tracks in the
+  `tracks` setting get lessons and gates. A domain lesson teaches *this project's* logic in
+  the project's own names and numbers, without language syntax.
+- **Answer keys come from the code.** Run the code on the example data, or trace the exact
+  lines, and record where the answer came from in the question's `"source"`.
+- **Expectation questions** (`"type": "expect"`) ask what the user expects before showing
+  what the code does. Put one or two in every domain-track quiz.
+- **A disputed answer is a possible bug.** The user can press "That's not what it should
+  do" on any reveal. When `unlock` reports one, check the code against their expectation
+  and tell them what you found before building anything on top of it.
 
 ## The `hands_on` style
 
