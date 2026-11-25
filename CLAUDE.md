@@ -41,33 +41,50 @@ install from this repo, so keep anything specific to Patrick out of the plugin f
 | **Three looks** | The quiz page comes in three looks and the user picks one with the `look` setting: **`arcade`** (the overkill one: sound, mascot, drag games, combo, fireworks; Patrick's favourite and the default), **`classic`** (the original prototype) and **`plain`** (one scrolling page, no animation, no game pieces). Same lesson and questions in all three; only the presentation changes. |
 | **Adjustable** | Difficulty, number of questions, pass bar, lesson on/off and trigger sensitivity are all settings. Asked at first run in a project, changeable anytime (see Settings below). |
 
-## Architecture (v1)
+## Architecture (v1, as built)
 ```
 .claude-plugin/plugin.json      plugin manifest
 .claude-plugin/marketplace.json lets people install the plugin from this repo
 skills/vibe-check/SKILL.md      tells Claude WHEN and HOW to run a vibe check
+  quiz-format.md                the quiz content format (lesson scenes, question types)
+  arcade-scenes.md              how to write a custom scene for the arcade look
+  existing-projects.md          scan, tour and placement quiz for projects that already have code
 hooks/hooks.json                PreToolUse hook on Edit|Write|MultiEdit|NotebookEdit
 scripts/gate.py                 the hook: blocks edits while a quiz is pending (exit 2 + message)
-scripts/vc.py                   CLI: start <topic> / unlock <code> / skip / status
-templates/quiz.html             single-file quiz template; Claude fills in a JSON block of cards + questions
-commands/                       slash commands (/vibe-check:skip, /vibe-check:status)
-examples/pandas-playground/     a scratch project for testing the plugin on pandas
+scripts/vc.py                   CLI: start / build / unlock / skip / status / config / topics / review / concepts
+templates/core.js               shared quiz rules, pass code and answer trail; stamped into every page
+templates/game.html             the arcade and classic looks (one file, arcade switches the extras on)
+templates/plain.html            the plain look
+commands/                       slash commands: skip, status, config, topics, review, scan, tour
+examples/pandas-playground/     sample data plus a complete worked quiz (content + custom scene)
+prototypes/                     the three hand-built groupby pages the looks came from
+tests/test_vibe_check.py        gate and CLI tests (python3 -m unittest discover -s tests)
 ```
 
-**State** lives in the *user's* project at `.vibe-check/`:
-- `pending.json`: the current quiz (topic, hash of the pass code, path to the quiz file). While this file exists, the gate is closed.
+**State** in the *user's* project at `.vibe-check/`:
+- `pending.json`: the gated quiz in progress (topic, hash of the pass code, paths). While this file exists, the gate is closed.
+- `practice.json`: a no-gate lesson in progress (`start --no-gate`). The gate ignores it.
 - `passed.json`: concepts already passed, so they don't get re-quizzed.
-- `quizzes/<topic>.html`: the generated quiz pages.
+- `concepts.json`: the project's concept list from a scan (learning / known / gate).
+- `config.json`: this project's settings.
+- `quizzes/<topic>.json`: the quiz content Claude writes. `quizzes/<topic>.html`: the built page.
+
+**State for the user** at `~/.vibe-check/` (or `$VIBE_CHECK_HOME`): `config.json` (defaults),
+`history.jsonl`, `reviews/` (no-gate copies of passed quizzes), `log.html` (Learning Log).
 
 **The flow:**
-1. Claude spots a new concept and runs `vc.py start "<topic>"`, which creates the pass code and `pending.json`.
-2. Claude writes `.vibe-check/quizzes/<topic>.html` from the template and opens it in the browser. The gate lets writes inside `.vibe-check/` through.
-3. The user passes and pastes the code into Claude Code. Claude runs `vc.py unlock <code>`: if the hash matches, the concept is added to `passed.json` and `pending.json` is removed.
-4. Edits are allowed again, and Claude does the actual work.
+1. Claude spots a new concept and runs `vc.py start "<topic>"`, which creates `pending.json` (gate closes).
+2. Claude writes the quiz **content** as JSON to `.vibe-check/quizzes/<topic>.json` (plus two small files for an arcade custom scene). The gate lets writes inside `.vibe-check/` through.
+3. `vc.py build` checks the content, makes the pass code, stamps content + code into the template for the user's `look`, and opens the page. Claude never sees the pass code.
+4. The user passes and pastes what the Copy button gave them: `<pass code>.<answer trail>`. Claude runs `vc.py unlock <that>`: if the hash matches, the concept goes into `passed.json`, the answers go into the history, and `pending.json` is removed.
+5. Edits are allowed again, and Claude does the actual work.
 
 **About the pass code:** this is a self-imposed gate, not a security system. The code
-lives inside the quiz HTML, hidden until the user passes (base64 or similar is enough).
-Don't over-engineer it.
+lives inside the quiz HTML in base64, hidden until the user passes. Don't over-engineer it.
+
+**Arcade custom scenes:** the shell (header, XP, mascot, quiz, pass code) is fixed. Only one
+lesson scene is agent-written, it runs with a small `vc` toolkit, it must ship a `fallback`
+scene, and if it throws the page shows the fallback. A bad scene can't block the exit.
 
 ## Settings (v1)
 Stored at `.vibe-check/config.json` in the project, with optional global defaults at
@@ -166,8 +183,8 @@ Every Vibe Check is logged so the user can see what they've covered and go back 
 - [x] **3. Quiz template:** `templates/quiz.html` as one file with no CDN, so it works on locked-down machines. **Lesson (click-through cards, tiny example, predict-the-output)** → MCQ → retry misses → reveal the pass code. Lengths come from the config. Mobile-friendly.
 - [x] **4. Skill:** finish `skills/vibe-check/SKILL.md`: when to trigger, how to write good questions (teach before you test; prediction over definitions; respect config for level and counts; first-run setup questions), the step-by-step flow.
 - [x] **5. Slash commands:** `/vibe-check:skip`, `/vibe-check:status`, `/vibe-check:config`. `vc.py` reads and writes the config.
-- [ ] **6. Test it:** install the plugin locally and use it in `examples/pandas-playground` (for example, "load a CSV into a DataFrame and group by a column"). Fix whatever feels annoying.
-- [ ] **7. README + release:** install steps, a GIF/screenshot, tag v0.1.0.
+- [x] **6. Test it:** install the plugin locally and use it in `examples/pandas-playground` (for example, "load a CSV into a DataFrame and group by a column"). Fix whatever feels annoying.
+- [x] **7. README + release:** install steps, a GIF/screenshot, tag v0.1.0.
 
 ## Open questions (bring up when you get to them, not before)
 - Should the gate also catch `Bash` commands that write files (`>`, `sed -i`, `cat <<EOF`)? Probably yes in v2.

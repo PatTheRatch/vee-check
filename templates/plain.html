@@ -98,7 +98,7 @@ details{margin:.5rem 0}
     const pass = document.getElementById('pass'), body = document.getElementById('passbody');
     if (D.review) body.innerHTML = '<p>Nothing to paste. You can close this page.</p>';
     else {
-      body.innerHTML = '<p>Copy this code and paste it into Claude Code to ${D.gate === false ? 'save this to your Learning Log' : 'unlock the build'}:</p><p><code id="code"></code> <button type="button" id="copy">Copy</button></p><p>Copy includes a short record of your answers for your Learning Log.</p>';
+      body.innerHTML = '<p>Copy this code and paste it into Claude Code to ' + (D.gate === false ? 'save this to your Learning Log' : 'unlock the build') + ':</p><p><code id="code"></code> <button type="button" id="copy">Copy</button></p><p>Copy includes a short record of your answers for your Learning Log.</p>';
       document.getElementById('code').textContent = VC.passCode();
       document.getElementById('copy').onclick = ev => VC.copy(quiz.resultCode(), ev.target);
     }

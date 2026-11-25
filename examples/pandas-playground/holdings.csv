@@ -1,0 +1,7 @@
+ticker,region,sector,weight
+AAA,Europe,Tech,5
+BBB,Asia,Banks,3
+CCC,Europe,Health,4
+DDD,EM,Tech,2
+EEE,Asia,Health,5
+FFF,EM,Banks,1

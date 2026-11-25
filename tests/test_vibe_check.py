@@ -159,6 +159,22 @@ class CliTests(Base):
                 self.assertEqual("custom" in kinds, look == "arcade")
                 self.assertEqual(self.vc("skip")[0], 0)
 
+    @unittest.skipUnless(shutil.which("node"), "node is not installed, so the page scripts can't be syntax-checked")
+    def test_built_pages_have_valid_javascript(self):
+        for look in ("arcade", "plain"):
+            with self.subTest(look=look):
+                self.vc("config", "set", "look", look)
+                self.start_and_build()
+                _, page = self.page_data()
+                scripts = re.findall(r"<script>(.*?)</script>", page, re.S)
+                self.assertTrue(scripts)
+                for number, script in enumerate(scripts):
+                    path = self.tmp / f"{look}-{number}.js"
+                    path.write_text(script, encoding="utf-8")
+                    done = subprocess.run(["node", "--check", str(path)], capture_output=True, text=True)
+                    self.assertEqual(done.returncode, 0, done.stderr)
+                self.vc("skip")
+
     def test_settings(self):
         self.assertEqual(self.vc("config", "set", "look", "sparkly")[0], 1)
         self.assertEqual(self.vc("config", "set", "questions", "11")[0], 1)

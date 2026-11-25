@@ -1,7 +1,14 @@
 {
   "name": "vibe-check",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Pass a quick quiz before Claude Code writes the code. Learn as you vibe.",
-  "author": { "name": "Patrick McDowell" },
-  "keywords": ["learning", "quiz", "vibe-coding", "education"]
+  "author": {
+    "name": "Patrick McDowell"
+  },
+  "keywords": [
+    "learning",
+    "quiz",
+    "vibe-coding",
+    "education"
+  ]
 }
