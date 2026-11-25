@@ -38,6 +38,7 @@ install from this repo, so keep anything specific to Patrick out of the plugin f
 | **If the gate breaks** | Fail closed only while a quiz is pending (error → exit 2 with a "gate is broken" message). With no quiz pending, an error lets the edit through, so a bug can't lock up normal editing. |
 | **After a skip** | `skip` only opens the gate this once. The concept is not marked as passed, so it gets quizzed again the next time it comes up. |
 | **Concepts vs. hands-on** | A `style` setting. **`concepts` (default):** the goal is understanding what the code does well enough to explain it to someone, no typing code. **`hands_on`:** learn by doing, where the user writes a small piece of the code themselves. Never force hands-on when the style is `concepts`. |
+| **Three looks** | The quiz page comes in three looks and the user picks one with the `look` setting: **`arcade`** (the overkill one: sound, mascot, drag games, combo, fireworks; Patrick's favourite and the default), **`classic`** (the original prototype) and **`plain`** (one scrolling page, no animation, no game pieces). Same lesson and questions in all three; only the presentation changes. |
 | **Adjustable** | Difficulty, number of questions, pass bar, lesson on/off and trigger sensitivity are all settings. Asked at first run in a project, changeable anytime (see Settings below). |
 
 ## Architecture (v1)
@@ -77,7 +78,9 @@ project (AskUserQuestion), and changeable anytime with `/vibe-check:config` or b
 {
   "style": "concepts",          // concepts = understand it well enough to explain it to someone (default)
                                 //   hands_on = also learn by doing: write a small piece of the code yourself
+  "look": "arcade",             // arcade | classic | plain: how the quiz page looks and feels (see prototypes/)
   "level": "beginner",          // beginner | intermediate | advanced: changes how much the lesson assumes and how hard questions are
+  "zoom": "how",                // what | how | weeds: starting depth (adaptive from there)
   "lesson": true,               // show the Learn part before the Check
   "lesson_cards": 4,            // 2–8
   "questions": 3,               // 1–10
@@ -86,10 +89,55 @@ project (AskUserQuestion), and changeable anytime with `/vibe-check:config` or b
 }
 ```
 
+## Look & feel (picked by Patrick)
+Fun, animated, gamified. Not plain flashcards.
+- **Lesson formats:** *Story scenario* (a real-world problem the concept solves), *Animated
+  step-through* (watch the data move as the code runs), *Playground* (change a setting, see the
+  result change live).
+- **Quiz formats:** *Predict the output* (animated reveal), *Drag and drop* (put steps in order,
+  match terms), *Explain it back* (pick the best plain-English explanation for a coworker; this
+  is the core of the `concepts` style).
+- **Game pieces:** *XP + levels*, *Streaks*, *Topic badges* (shown on the Learning Log).
+- Reference prototypes, one per look (all teach the same groupby lesson):
+  `prototypes/pandas-groupby-overkill.html` (`arcade`), `prototypes/pandas-groupby.html` (`classic`),
+  `prototypes/pandas-groupby-nofrills.html` (`plain`). Step 3's templates generalize them.
+
+## Starting late on an existing project (decided)
+1. **Scan → concept inventory.** Read imports, libraries, file types and patterns, then list the
+   concepts the project uses, ranked by how much of the code depends on each. Group them as
+   *Big picture* (architecture), *Tools* (libraries), *Techniques* (patterns).
+2. **Project tour first.** One animated lesson on how the whole codebase fits together (what talks
+   to what), before any single concept. The goal: the user can explain the project to someone.
+3. **Placement quiz.** 2 quick questions per concept. Pass = marked known, no lesson needed.
+4. **Concepts already in the code never gate** by default. They go on a learning list the user can
+   visit anytime ("teach me X"). The user can choose to make a specific concept gate.
+   Only concepts that are *new* to the project gate automatically.
+- Command idea: `/vibe-check:scan` runs the inventory, `/vibe-check:tour` replays the tour.
+
+## Depth: how high-level vs. in the weeds (decided)
+- Three zoom levels: **What** (what it does and why it's there) → **How** (the moving parts) →
+  **Weeds** (the actual lines, edge cases, gotchas). The `concepts` style defaults to What + How.
+- **Default + adaptive + zoom:** start at the configured level; go deeper when the user aces
+  things and simpler when they miss; every lesson has a "go deeper" button.
+- **Concept size rule:** a concept is something you'd explain to a coworker in one sentence when
+  they ask why that code is there. "Python" is too big; "f-strings" is too small.
+- Store the zoom level reached per concept in the history, so a review picks up there.
+
+## Tracking & review (v1)
+Every Vibe Check is logged so the user can see what they've covered and go back to it.
+- `~/.vibe-check/history.jsonl` (global, across all projects): one line per Vibe Check with
+  date, project, topic, the lesson content, every question with the user's answers, attempts
+  and misses, pass/skip, and the quiz file path.
+- `.vibe-check/passed.json` (per project) stays as the "don't re-quiz" list.
+- **Learning Log page**: a generated `~/.vibe-check/log.html` listing topics covered (by date and
+  project), with a **Review** button per topic that replays the lesson and quiz without gating.
+- Commands: `/vibe-check:topics` ("what have we covered?") and `/vibe-check:review <topic>`.
+- Gamification stats (XP, streaks and so on) are computed from the history, not stored separately.
+
 ## Build plan (do these one at a time)
 - [x] **1. Gate hook:** write `scripts/gate.py`. It reads the hook's JSON on stdin; if `.vibe-check/pending.json` exists and the target file isn't inside `.vibe-check/`, it exits 2 with a clear message for Claude. Otherwise it exits 0. Test it by piping sample JSON into it.
 - [x] **2. CLI:** write `scripts/vc.py` with the start / unlock / skip / status commands, using only the standard library.
-- [ ] **3. Quiz template:** `templates/quiz.html` as one file with no CDN, so it works on locked-down machines. **Lesson (click-through cards, tiny example, predict-the-output)** → MCQ → retry misses → reveal the pass code. Lengths come from the config. Mobile-friendly.
+- [x] **3. Quiz template:** `templates/quiz.html` as one file with no CDN, so it works on locked-down machines. **Lesson (click-through cards, tiny example, predict-the-output)** → MCQ → retry misses → reveal the pass code. Lengths come from the config. Mobile-friendly.
 - [ ] **4. Skill:** finish `skills/vibe-check/SKILL.md`: when to trigger, how to write good questions (teach before you test; prediction over definitions; respect config for level and counts; first-run setup questions), the step-by-step flow.
 - [ ] **5. Slash commands:** `/vibe-check:skip`, `/vibe-check:status`, `/vibe-check:config`. `vc.py` reads and writes the config.
 - [ ] **6. Test it:** install the plugin locally and use it in `examples/pandas-playground` (for example, "load a CSV into a DataFrame and group by a column"). Fix whatever feels annoying.

@@ -1,0 +1,19 @@
+<pre id="gcode">df.<span class="hl">groupby('region')</span>['weight'].sum()</pre>
+<p class="muted small">Drag each holding into its region pile, or tap it and then tap a pile.</p>
+<div class="tray" id="tray">
+  <div class="chip" data-t="AAA" data-k="Europe" data-w="5"><b>AAA</b> <span class="muted">Europe</span> <b>5%</b></div>
+  <div class="chip" data-t="BBB" data-k="Asia" data-w="3"><b>BBB</b> <span class="muted">Asia</span> <b>3%</b></div>
+  <div class="chip" data-t="CCC" data-k="Europe" data-w="4"><b>CCC</b> <span class="muted">Europe</span> <b>4%</b></div>
+  <div class="chip" data-t="DDD" data-k="EM" data-w="2"><b>DDD</b> <span class="muted">EM</span> <b>2%</b></div>
+  <div class="chip" data-t="EEE" data-k="Asia" data-w="5"><b>EEE</b> <span class="muted">Asia</span> <b>5%</b></div>
+  <div class="chip" data-t="FFF" data-k="EM" data-w="1"><b>FFF</b> <span class="muted">EM</span> <b>1%</b></div>
+</div>
+<div class="buckets">
+  <div class="bucket g0" data-k="Europe"><b>Europe</b> <small class="muted sumline"></small><div class="pile"></div></div>
+  <div class="bucket g1" data-k="Asia"><b>Asia</b> <small class="muted sumline"></small><div class="pile"></div></div>
+  <div class="bucket g2" data-k="EM"><b>EM</b> <small class="muted sumline"></small><div class="pile"></div></div>
+</div>
+<div class="row" style="margin-top:14px">
+  <button class="btn ghost" id="auto">Do it for me</button>
+  <button class="btn" id="sum" disabled>Sum each pile</button>
+</div>

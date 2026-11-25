@@ -1,0 +1,62 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "prototypes/pandas-groupby-overkill.html"
+        ],
+        "createdAt": "2026-11-24T23:25:39.860Z",
+        "reason": "Agent decision: Patrick asked for a deliberately over-the-top 'overkill' prototype to show the far end of the range; gradient text and glow are the point of this one file"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "prototypes/pandas-groupby-overkill.html"
+        ],
+        "createdAt": "2026-11-24T23:25:39.882Z",
+        "reason": "Agent decision: Patrick asked for a deliberately over-the-top 'overkill' prototype to show the far end of the range; gradient text and glow are the point of this one file"
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "prototypes/pandas-groupby-overkill.html"
+        ],
+        "createdAt": "2026-11-24T23:29:03.589Z",
+        "reason": "Agent decision: Patrick asked for a deliberately over-the-top 'overkill' prototype to show the far end of the range; the glowing background is part of that one file"
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "templates/game.html"
+        ],
+        "createdAt": "2026-11-24T23:41:05.615Z",
+        "reason": "Agent decision: this file carries the arcade look, which Patrick picked as his favourite ('I like the overkill one') and asked to keep as a setting; the glow and gradient text are that look"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "templates/game.html"
+        ],
+        "createdAt": "2026-11-24T23:41:05.646Z",
+        "reason": "Agent decision: this file carries the arcade look, which Patrick picked as his favourite ('I like the overkill one') and asked to keep as a setting; the glow and gradient text are that look"
+      },
+      {
+        "rule": "radial-halo",
+        "value": "*",
+        "files": [
+          "templates/game.html"
+        ],
+        "createdAt": "2026-11-24T23:41:05.661Z",
+        "reason": "Agent decision: this file carries the arcade look, which Patrick picked as his favourite ('I like the overkill one') and asked to keep as a setting; the glow and gradient text are that look"
+      }
+    ]
+  }
+}

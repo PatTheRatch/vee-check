@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vibe Check · pandas groupby (prototype)</title>
+<style>
+:root{--bg:#0f1117;--card:#181b24;--line:#2a2f3d;--text:#e8eaf0;--muted:#9aa1b2;--accent:#8b5cf6;--good:#22c55e;--bad:#ef4444;--eu:#3b82f6;--as:#f59e0b;--em:#ec4899}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:20px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.logo{font-weight:800;font-size:20px}.logo span{color:var(--accent)}
+.stats{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:14px;flex-wrap:wrap}
+.pill{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.xpbar{width:110px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle}
+.xpbar i{display:block;height:100%;background:var(--accent);transition:width .7s}
+.progress{display:flex;gap:6px;margin-bottom:14px}
+.progress div{flex:1;height:5px;border-radius:3px;background:var(--line);transition:background .3s}
+.progress .on{background:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;animation:in .35s ease}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h2{margin:6px 0 10px;font-size:22px;line-height:1.25}
+p{margin:8px 0}
+.muted{color:var(--muted)}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre{background:#0b0d12;border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto;font-size:14px;margin:10px 0}
+code{background:#0b0d12;padding:1px 6px;border-radius:5px;font-size:.9em}
+.hl{background:rgba(139,92,246,.3);border-radius:4px;padding:0 2px;transition:background .3s}
+button{font:inherit;cursor:pointer;color:inherit}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 18px;font-weight:700}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.nav{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:18px}
+/* data rows */
+.stage{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+.r{display:grid;grid-template-columns:1fr 1fr 1fr 70px;gap:8px;padding:8px 12px;border-radius:10px;background:#11141c;border:1px solid var(--line);font-size:14px;transition:background .4s,border-color .4s,margin .4s}
+.r.head{background:transparent;border-color:transparent;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.r .w{text-align:right;font-variant-numeric:tabular-nums}
+.c-Europe{border-color:var(--eu);background:rgba(59,130,246,.12)}
+.c-Asia{border-color:var(--as);background:rgba(245,158,11,.12)}
+.c-EM{border-color:var(--em);background:rgba(236,72,153,.12)}
+.gap{margin-top:14px}
+.sum{display:grid;grid-template-columns:1fr auto;padding:12px 14px;border-radius:12px;font-weight:700;animation:pop .45s ease both}
+.sum small{font-weight:400;color:var(--muted);margin-left:8px}
+@keyframes pop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:8px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--accent)}
+/* playground */
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.seg{display:flex;background:#0b0d12;border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{background:none;border:0;padding:6px 12px;border-radius:8px;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--accent);color:#fff}
+.bar{display:grid;grid-template-columns:90px 1fr 50px;gap:10px;align-items:center;margin:8px 0;font-size:14px}
+.bar .track{height:22px;background:#0b0d12;border-radius:6px;overflow:hidden}
+.bar .fill{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.bar .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+/* quiz */
+.opts{display:grid;gap:10px;margin-top:12px}
+.opt{text-align:left;background:#11141c;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:transform .15s,border-color .2s,background .2s}
+.opt:hover:not(:disabled){border-color:var(--accent);transform:translateY(-1px)}
+.opt pre{margin:0;border:0;background:none;padding:0}
+.opt.right{border-color:var(--good);background:rgba(34,197,94,.12)}
+.opt.wrong{border-color:var(--bad);background:rgba(239,68,68,.12);animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+.fb{margin-top:14px;padding:12px 14px;border-radius:12px;animation:in .3s}
+.fb.good{background:rgba(34,197,94,.12);border:1px solid var(--good)}
+.fb.bad{background:rgba(239,68,68,.1);border:1px solid var(--bad)}
+.drag{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.di{display:flex;align-items:center;gap:10px;background:#11141c;border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:grab;user-select:none}
+.di.dragging{opacity:.4}
+.di .n{width:26px;height:26px;border-radius:50%;background:var(--line);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+.di .t{flex:1}
+.di .mv{background:none;border:1px solid var(--line);border-radius:6px;width:30px;height:28px}
+.di.right{border-color:var(--good)}.di.wrong{border-color:var(--bad)}
+.float{position:fixed;font-weight:800;color:var(--accent);pointer-events:none;animation:rise 1.1s ease forwards;z-index:9}
+@keyframes rise{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-60px)}}
+/* win */
+.center{text-align:center}
+.badge{font-size:64px;display:inline-block;animation:badge .8s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes badge{from{transform:scale(0) rotate(-30deg)}to{transform:none}}
+.code{font-size:28px;letter-spacing:.15em;font-weight:800;background:#0b0d12;border:2px dashed var(--accent);border-radius:12px;padding:12px 20px;display:inline-block;margin:10px 0}
+.confetti{position:fixed;top:-10px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards;z-index:8;pointer-events:none}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Vibe <span>Check</span></div>
+    <div class="stats">
+      <span class="pill">🔥 <b id="streak">3</b>-day streak</span>
+      <span class="pill">Lv <b id="lvl">2</b> <span class="xpbar"><i id="xpfill"></i></span> <span id="xp">0</span> XP</span>
+    </div>
+  </header>
+  <div class="progress" id="progress"></div>
+  <main id="main"></main>
+  <div class="note">Prototype · topic: <b>pandas groupby</b> · style: concepts · level: beginner</div>
+</div>
+
+<script>
+// ---------- data ----------
+const ROWS=[
+ {t:'AAA',region:'Europe',sector:'Tech',weight:5},
+ {t:'BBB',region:'Asia',sector:'Banks',weight:3},
+ {t:'CCC',region:'Europe',sector:'Health',weight:4},
+ {t:'DDD',region:'EM',sector:'Tech',weight:2},
+ {t:'EEE',region:'Asia',sector:'Health',weight:5},
+ {t:'FFF',region:'EM',sector:'Banks',weight:1},
+];
+const COLORS={Europe:'var(--eu)',Asia:'var(--as)',EM:'var(--em)',Tech:'#22d3ee',Banks:'#a3e635',Health:'#f472b6'};
+
+// ---------- XP / storage (safe) ----------
+let mem={xp:180};
+function load(){try{const v=JSON.parse(localStorage.getItem('vc_proto')||'null');if(v)mem=v}catch(e){}}
+function save(){try{localStorage.setItem('vc_proto',JSON.stringify(mem))}catch(e){}}
+load();
+const PER_LVL=250;
+function drawXP(){
+  const lvl=Math.floor(mem.xp/PER_LVL)+1;
+  document.getElementById('lvl').textContent=lvl;
+  document.getElementById('xp').textContent=mem.xp;
+  document.getElementById('xpfill').style.width=((mem.xp%PER_LVL)/PER_LVL*100)+'%';
+}
+function addXP(n,el){
+  mem.xp+=n;save();drawXP();
+  const r=(el||document.getElementById('xp')).getBoundingClientRect();
+  const f=document.createElement('div');f.className='float';f.textContent='+'+n+' XP';
+  f.style.left=(r.left+r.width/2-30)+'px';f.style.top=(r.top-10)+'px';
+  document.body.appendChild(f);setTimeout(()=>f.remove(),1200);
+}
+drawXP();
+
+// ---------- helpers ----------
+const $=s=>document.querySelector(s);
+function h(html){$('#main').innerHTML='<div class="card">'+html+'</div>'}
+function rowHTML(r){return `<div class="r" data-t="${r.t}"><span>${r.t}</span><span>${r.region}</span><span>${r.sector}</span><span class="w">${r.weight}%</span></div>`}
+const HEAD='<div class="r head"><span>ticker</span><span>region</span><span>sector</span><span class="w">weight</span></div>';
+function flip(container,mutate){
+  const els=[...container.children];
+  const first=new Map(els.map(e=>[e,e.getBoundingClientRect()]));
+  mutate();
+  els.forEach(e=>{const f=first.get(e),l=e.getBoundingClientRect();const dx=f.left-l.left,dy=f.top-l.top;
+    if(dx||dy)e.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'none'}],{duration:650,easing:'cubic-bezier(.2,.8,.2,1)'})});
+}
+function agg(by,fn){
+  const g={};ROWS.forEach(r=>{(g[r[by]]=g[r[by]]||[]).push(r.weight)});
+  const out={};for(const k in g){const a=g[k];
+    out[k]=fn==='sum'?a.reduce((x,y)=>x+y,0):fn==='mean'?a.reduce((x,y)=>x+y,0)/a.length:fn==='count'?a.length:Math.max(...a)}
+  return out;
+}
+const fmt=v=>Number.isInteger(v)?String(v):v.toFixed(1);
+
+// ---------- flow ----------
+const LESSON=[story,stepThrough,playground];
+let quizQueue=[0,1,2],retry=[],round=1,qPos=0;
+const TOTAL=LESSON.length+3+1;
+let stepIdx=0;
+function progress(n){$('#progress').innerHTML=Array.from({length:TOTAL},(_,i)=>`<div class="${i<n?'on':''}"></div>`).join('')}
+function go(i){stepIdx=i;progress(i+1);
+  if(i<LESSON.length)LESSON[i]();
+  else startQuiz();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// 1. Story
+function story(){
+  h(`<div class="tag">Learn · 1 of 3 · The situation</div>
+  <h2>"What's our total weight in each region?"</h2>
+  <p>Your PM asks this. You've got a table of holdings, one row per stock:</p>
+  <div class="stage">${HEAD}${ROWS.map(rowHTML).join('')}</div>
+  <p>You could add them up by hand. With 6 rows, sure. With 600? No.</p>
+  <p>pandas does it in one line with <code>groupby</code>. Let's watch what that line actually does.</p>
+  <div class="nav"><span></span><button class="btn" onclick="go(1)">Show me →</button></div>`);
+}
+
+// 2. Animated step-through
+const STEPS=[
+ {txt:'Here\'s <code>df</code>: six holdings across three regions.',code:'df'},
+ {txt:'<b>Split.</b> pandas reads the <code>region</code> column and tags each row with its group.',code:"df.<span class='hl'>groupby('region')</span>"},
+ {txt:'Rows with the same region get grouped together. Nothing is added up yet, they\'re just sorted into piles.',code:"df.<span class='hl'>groupby('region')</span>"},
+ {txt:'<b>Apply + combine.</b> Pick the <code>weight</code> column, <code>sum</code> each pile, and you get one row per region.',code:"df.groupby('region')<span class='hl'>['weight'].sum()</span>"},
+];
+let st=0;
+function stepThrough(){
+  st=0;
+  h(`<div class="tag">Learn · 2 of 3 · Watch it run</div>
+  <h2>Split → apply → combine</h2>
+  <pre id="codeline"></pre>
+  <p id="steptxt"></p>
+  <div class="stage" id="stage">${ROWS.map(rowHTML).join('')}</div>
+  <div class="dots" id="dots"></div>
+  <div class="nav"><button class="btn ghost" onclick="go(0)">← Back</button><button class="btn" id="nextStep">Next step →</button></div>`);
+  $('#nextStep').onclick=()=>{if(st<STEPS.length-1){st++;renderStep(true)}else go(2)};
+  renderStep(false);
+}
+function renderStep(anim){
+  const s=STEPS[st];
+  $('#codeline').innerHTML=s.code;$('#steptxt').innerHTML=s.txt;
+  $('#dots').innerHTML=STEPS.map((_,i)=>`<i class="${i<=st?'on':''}"></i>`).join('');
+  $('#nextStep').textContent=st<STEPS.length-1?'Next step →':'Try it yourself →';
+  const stage=$('#stage');
+  if(st===1){stage.querySelectorAll('.r').forEach(el=>{const r=ROWS.find(x=>x.t===el.dataset.t);el.classList.add('c-'+r.region)})}
+  if(st===2){
+    const order=['Europe','Asia','EM'];
+    flip(stage,()=>{
+      const els=[...stage.children].sort((a,b)=>{const ra=ROWS.find(x=>x.t===a.dataset.t),rb=ROWS.find(x=>x.t===b.dataset.t);return order.indexOf(ra.region)-order.indexOf(rb.region)});
+      els.forEach((e,i)=>{e.classList.toggle('gap',i===2||i===4);stage.appendChild(e)});
+    });
+  }
+  if(st===3){
+    const sums=agg('region','sum');
+    stage.style.opacity=0;stage.style.transition='opacity .3s';
+    setTimeout(()=>{
+      stage.innerHTML=['Europe','Asia','EM'].map((k,i)=>{const parts=ROWS.filter(r=>r.region===k).map(r=>r.weight).join(' + ');
+        return `<div class="sum c-${k}" style="animation-delay:${i*0.15}s;border:1px solid"><span>${k}<small>${parts}</small></span><span>${sums[k]}%</span></div>`}).join('');
+      stage.style.opacity=1;
+    },300);
+  }
+}
+
+// 3. Playground
+let pg={by:'region',fn:'sum'};
+function playground(){
+  h(`<div class="tag">Learn · 3 of 3 · Playground</div>
+  <h2>Change it up and watch the result</h2>
+  <div class="controls">
+    <div class="seg" id="byseg">${['region','sector'].map(b=>`<button data-v="${b}">group by ${b}</button>`).join('')}</div>
+    <div class="seg" id="fnseg">${['sum','mean','count','max'].map(f=>`<button data-v="${f}">${f}</button>`).join('')}</div>
+  </div>
+  <pre id="pgcode"></pre>
+  <div id="bars"></div>
+  <p class="muted" id="pgsay"></p>
+  <div class="nav"><button class="btn ghost" onclick="go(1)">← Back</button><button class="btn" onclick="go(3)">I got it, quiz me →</button></div>`);
+  $('#byseg').onclick=e=>{if(e.target.dataset.v){pg.by=e.target.dataset.v;drawPG()}};
+  $('#fnseg').onclick=e=>{if(e.target.dataset.v){pg.fn=e.target.dataset.v;drawPG()}};
+  drawPG();
+}
+const SAY={sum:'adds up the weights in each group',mean:'averages the weights in each group',count:'counts how many rows land in each group',max:'finds the biggest weight in each group'};
+function drawPG(){
+  document.querySelectorAll('#byseg button').forEach(b=>b.classList.toggle('on',b.dataset.v===pg.by));
+  document.querySelectorAll('#fnseg button').forEach(b=>b.classList.toggle('on',b.dataset.v===pg.fn));
+  $('#pgcode').innerHTML=`df.groupby('<span class="hl">${pg.by}</span>')['weight'].<span class="hl">${pg.fn}</span>()`;
+  const res=agg(pg.by,pg.fn),max=Math.max(...Object.values(res));
+  const bars=$('#bars');
+  const keys=Object.keys(res);
+  if(bars.dataset.by!==pg.by){bars.dataset.by=pg.by;
+    bars.innerHTML=keys.map(k=>`<div class="bar"><span>${k}</span><div class="track"><div class="fill" data-k="${k}" style="width:0;background:${COLORS[k]}"></div></div><span class="v" data-v="${k}"></span></div>`).join('');}
+  requestAnimationFrame(()=>keys.forEach(k=>{
+    bars.querySelector(`[data-k="${k}"]`).style.width=(res[k]/max*100)+'%';
+    bars.querySelector(`[data-v="${k}"]`).textContent=fmt(res[k])+(pg.fn==='count'?'':'%');
+  }));
+  $('#pgsay').textContent=`In plain English: it ${SAY[pg.fn]}, one result per ${pg.by}.`;
+}
+
+// ---------- quiz ----------
+const QS=[
+ {kind:'predict',title:'Predict the output',
+  prompt:'What does this give you?',code:"df.groupby('region')['weight'].mean()",
+  opts:['Europe    4.5\nAsia      4.0\nEM        1.5','Europe    9\nAsia      8\nEM        3','3.33'],
+  ans:0,why:'<code>mean</code> averages each group: Europe (5+4)/2 = 4.5, Asia (3+5)/2 = 4.0, EM (2+1)/2 = 1.5. The 9 / 8 / 3 answer is what <code>sum</code> would give.'},
+ {kind:'drag',title:'Put it in order',
+  prompt:"Drag (or use the arrows) to put the steps of <code>df.groupby('region')['weight'].sum()</code> in order.",
+  items:['Combine the totals into one small table, one row per region','Split the rows into piles by region','Add up the weight inside each pile'],
+  order:[1,2,0],why:'Split → apply → combine. Group the rows first, do the math on each group, then put the answers together.'},
+ {kind:'explain',title:'Explain it back',
+  prompt:"A coworker asks what <code>df.groupby('sector')['weight'].sum()</code> does. Best answer?",
+  opts:['It sorts the table by sector.','It adds up the portfolio weight for each sector, so you get one total per sector.','It removes duplicate sectors from the table.','It adds all the weights into one number.'],
+  ans:1,why:'groupby plus sum gives one total <i>per group</i>. Sorting or de-duping doesn\'t do any math, and one single number would just be <code>df[\'weight\'].sum()</code>.'},
+];
+function startQuiz(){quizQueue=[0,1,2];retry=[];round=1;qPos=0;showQ()}
+function showQ(){
+  if(qPos>=quizQueue.length){
+    if(retry.length){quizQueue=retry;retry=[];round++;qPos=0;
+      h(`<div class="tag">Round ${round}</div><h2>Almost. Let's retry the ${quizQueue.length===1?'one':'ones'} you missed.</h2><p class="muted">You've seen the explanation now. Get ${quizQueue.length===1?'it':'them'} right to unlock the code.</p><div class="nav"><span></span><button class="btn" onclick="showQ()">Let's go →</button></div>`);
+      return;}
+    return win();
+  }
+  const qi=quizQueue[qPos],q=QS[qi];
+  progress(LESSON.length+1+qi);
+  const head=`<div class="tag">Check · ${q.title}${round>1?' · retry':''}</div><h2>${q.prompt}</h2>`;
+  if(q.kind==='drag'){
+    let cur=[0,1,2];
+    h(head+`<div class="drag" id="drag"></div><div id="fb"></div><div class="nav"><span></span><button class="btn" id="check">Check order</button></div>`);
+    const draw=()=>{$('#drag').innerHTML=cur.map((it,i)=>`<div class="di" draggable="true" data-i="${i}"><span class="n">${i+1}</span><span class="t">${q.items[it]}</span><button class="mv" data-up="${i}">↑</button><button class="mv" data-down="${i}">↓</button></div>`).join('')};
+    draw();
+    let from=null;const box=$('#drag');
+    box.addEventListener('dragstart',e=>{const d=e.target.closest('.di');from=+d.dataset.i;d.classList.add('dragging')});
+    box.addEventListener('dragend',()=>draw());
+    box.addEventListener('dragover',e=>{e.preventDefault();const d=e.target.closest('.di');if(!d||from===null)return;const to=+d.dataset.i;if(to!==from){flip(box,()=>{const [m]=cur.splice(from,1);cur.splice(to,0,m);from=to;draw()})}});
+    box.addEventListener('click',e=>{const u=e.target.dataset.up,dn=e.target.dataset.down;
+      if(u!==undefined&&+u>0){flip(box,()=>{[cur[+u-1],cur[+u]]=[cur[+u],cur[+u-1]];draw()})}
+      if(dn!==undefined&&+dn<cur.length-1){flip(box,()=>{[cur[+dn+1],cur[+dn]]=[cur[+dn],cur[+dn+1]];draw()})}});
+    $('#check').onclick=()=>{
+      const ok=cur.every((v,i)=>v===q.order[i]);
+      box.querySelectorAll('.di').forEach((el,i)=>el.classList.add(cur[i]===q.order[i]?'right':'wrong'));
+      box.style.pointerEvents='none';
+      answered(ok,qi,q,$('#check'));
+    };
+    return;
+  }
+  h(head+(q.code?`<pre>${q.code}</pre>`:'')+`<div class="opts" id="opts">${q.opts.map((o,i)=>`<button class="opt" data-i="${i}">${q.kind==='predict'?'<pre>'+o+'</pre>':o}</button>`).join('')}</div><div id="fb"></div><div class="nav" id="qnav"></div>`);
+  $('#opts').onclick=e=>{const b=e.target.closest('.opt');if(!b)return;const i=+b.dataset.i;
+    document.querySelectorAll('.opt').forEach(x=>x.disabled=true);
+    b.classList.add(i===q.ans?'right':'wrong');
+    if(i!==q.ans)setTimeout(()=>document.querySelector(`.opt[data-i="${q.ans}"]`).classList.add('right'),450);
+    answered(i===q.ans,qi,q,b);
+  };
+}
+function answered(ok,qi,q,el){
+  if(ok){addXP(round===1?20:10,el)}else{retry.push(qi)}
+  const fb=$('#fb');fb.className='fb '+(ok?'good':'bad');
+  fb.innerHTML=(ok?'<b>Nailed it.</b> ':'<b>Not quite.</b> ')+q.why;
+  const nav=document.querySelector('.nav');
+  nav.innerHTML='<span></span><button class="btn" id="nextQ">Next →</button>';
+  $('#nextQ').onclick=()=>{qPos++;showQ()};
+}
+
+// ---------- win ----------
+function win(){
+  progress(TOTAL);
+  addXP(50);
+  const code='VC-'+Math.random().toString(36).slice(2,6).toUpperCase();
+  h(`<div class="center">
+    <div class="tag">Vibe Check passed</div>
+    <div class="badge">🧩</div>
+    <h2>Badge unlocked: <code>groupby</code></h2>
+    <p class="muted">+50 XP for passing · 🔥 streak kept alive</p>
+    <p>Paste this code into Claude Code to unlock the build:</p>
+    <div class="code" id="code">${code}</div><br>
+    <button class="btn" id="copy">Copy code</button>
+    <button class="btn ghost" onclick="go(0)">Replay lesson</button>
+  </div>`);
+  $('#copy').onclick=()=>{try{navigator.clipboard.writeText(code);$('#copy').textContent='Copied ✓'}catch(e){$('#copy').textContent='Select & copy it'}};
+  document.getElementById('streak').textContent='4';
+  const cols=['#8b5cf6','#22c55e','#f59e0b','#3b82f6','#ec4899'];
+  for(let i=0;i<70;i++){const c=document.createElement('div');c.className='confetti';
+    c.style.left=Math.random()*100+'vw';c.style.background=cols[i%cols.length];
+    c.style.animationDuration=(1.6+Math.random()*1.6)+'s';c.style.animationDelay=(Math.random()*.4)+'s';
+    document.body.appendChild(c);setTimeout(()=>c.remove(),3800)}
+}
+
+go(0);
+</script>
+</body>
+</html>

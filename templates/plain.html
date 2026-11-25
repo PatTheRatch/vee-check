@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vibe Check</title>
+<style>
+:root{color-scheme:light dark}
+body{max-width:40rem;margin:0 auto;padding:1.5rem 1rem 4rem;font:1rem/1.55 system-ui,sans-serif}
+h1{font-size:1.6rem;margin:0 0 .25rem}
+h2{font-size:1.25rem;margin:2.5rem 0 .5rem;padding-top:1rem;border-top:1px solid}
+h3{font-size:1rem;margin:1.5rem 0 .25rem}
+h4{font-size:.95rem;margin:1rem 0 0}
+table{border-collapse:collapse;margin:.75rem 0}
+th,td{text-align:left;padding:.25rem 1rem .25rem 0;border-bottom:1px solid color-mix(in srgb,currentColor 25%,transparent)}
+pre,code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem}
+pre{overflow:auto;margin:.5rem 0;padding:.5rem .75rem;border-left:3px solid}
+.hl{font-weight:700;text-decoration:underline}
+.wide{overflow-x:auto}
+fieldset{margin:1.25rem 0;padding:.75rem 1rem;border:1px solid}
+legend{font-weight:700;padding:0 .4rem}
+label{display:block;padding:.3rem 0}
+label pre{display:inline-block;vertical-align:top;margin:0;border:0;padding:0}
+select,button{font:inherit}
+button{padding:.4rem .9rem}
+details{margin:.5rem 0}
+.fb{margin:.5rem 0 0;font-weight:600}
+#code{font-size:1.5rem;font-weight:700;letter-spacing:.1em}
+</style>
+</head>
+<body>
+<main id="main"><p>This page has no quiz in it. It is the Vibe Check template; <code>vc.py build</code> fills it in.</p></main>
+<script id="vc-data" type="application/json">__VC_DATA__</script>
+<script>
+/*__VC_CORE__*/
+(() => {
+  const D = VC.data; if (!D) return;
+  const { fmt, esc, code } = VC, quiz = new VC.Quiz(), main = document.getElementById('main');
+  document.title = 'Vibe Check: ' + D.topic;
+  const table = t => !t ? '' : `<div class="wide"><table><tr>${(t.columns || []).map(c => `<th>${esc(c)}</th>`).join('')}</tr>${(t.rows || []).map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  const pre = c => c ? `<pre>${code(c)}</pre>` : '';
+
+  function scene(s, n) {
+    let out = `<h3>${n}. ${esc(s.title)}</h3>`;
+    if (s.type === 'story') out += s.messages.map((m, i) => `<p>${i === 0 && s.from ? `<b>${esc(s.from)}:</b> ` : ''}${fmt(m)}</p>`).join('') + table(s.table) + (s.body ? `<p>${fmt(s.body)}</p>` : '');
+    if (s.type === 'steps') out += `<ol>${s.steps.map(st => `<li>${fmt(st.text)}${pre(st.code)}${table(st.table)}</li>`).join('')}</ol>`;
+    if (s.type === 'card') out += `<p>${fmt(s.body)}</p>${pre(s.code)}${s.output ? `<details><summary>Decide what this prints, then open</summary><pre>${esc(s.output)}</pre></details>` : ''}`;
+    if (s.type === 'playground') out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + Object.keys(s.results).map(k => { const r = s.results[k];
+      return `<h4>${esc(k.split('|').join(', '))}</h4>${pre(r.code)}${table({ columns: [], rows: r.rows || [] })}${r.say ? `<p>${fmt(r.say)}</p>` : ''}`; }).join('');
+    return out;
+  }
+
+  function question(q, i) {
+    let body = pre(q.code);
+    if (q.type === 'order') {
+      const places = q.items.map((_, n) => `<option value="${n}">${n + 1}</option>`).join('');
+      body += VC.scramble(q.items.length, i + q.items.length).map(item => `<label><select data-item="${item}"><option value="">?</option>${places}</select> ${fmt(q.items[item])}</label>`).join('');
+    } else {
+      body += q.options.map((o, n) => `<label><input type="radio" name="q${i}" value="${n}"> ${q.type === 'predict' ? `<pre>${esc(o)}</pre>` : fmt(o)}</label>`).join('');
+    }
+    return `<fieldset id="q${i}"><legend>${i + 1}. ${fmt(q.prompt)}</legend>${body}<p class="fb" role="status"></p></fieldset>`;
+  }
+
+  const n = quiz.qs.length, bar = quiz.need === n ? `all ${n === 1 ? 'of it' : n}` : `${quiz.need} of ${n}`;
+  main.innerHTML = `<h1>Vibe Check: ${esc(D.topic)}</h1>
+    <p>${D.lesson.length ? 'Read the lesson, then answer' : 'Answer'} ${n === 1 ? 'the question' : `the ${n} questions`}. ${D.review ? 'This is a review, so there is no pass code.' : `Get ${bar} right to see your pass code.`}</p>
+    ${D.lesson.length ? '<h2>Lesson</h2>' + D.lesson.map((s, i) => scene(s, i + 1)).join('') : ''}
+    <h2>Questions</h2>
+    <form id="quiz">${quiz.qs.map(question).join('')}<button type="submit">Check answers</button><p id="result" role="status"></p></form>
+    <section id="pass" hidden><h2>${D.review ? 'Review complete' : 'Passed'}</h2><div id="passbody"></div></section>`;
+
+  const form = document.getElementById('quiz');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    quiz.qs.forEach((q, i) => {
+      if (quiz.right.has(i)) return;
+      const box = document.getElementById('q' + i), fb = box.querySelector('.fb');
+      let mark, ok;
+      if (q.type === 'order') {
+        const picks = [...box.querySelectorAll('select')];
+        if (picks.some(s => s.value === '')) { fb.textContent = 'Give every step a position.'; return; }
+        ok = picks.every(s => s.value === s.dataset.item); mark = ok ? 'y' : 'n';
+      } else {
+        const pick = form.elements['q' + i].value;
+        if (pick === '') { fb.textContent = 'Pick an answer.'; return; }
+        ok = +pick === q.answer; mark = pick;
+      }
+      quiz.record(i, mark, ok);
+      fb.innerHTML = (ok ? 'Correct. ' : 'Not quite. ') + fmt(q.why) + (ok ? '' : ' Try this one again.');
+      if (ok) box.disabled = true;
+      else { box.querySelectorAll('input').forEach(x => x.checked = false); box.querySelectorAll('select').forEach(x => x.value = ''); }
+    });
+    const passed = quiz.right.size >= quiz.need;
+    document.getElementById('result').textContent = `${quiz.right.size} of ${n} correct.` + (passed ? '' : ' Fix the ones marked "Not quite" and check again.');
+    if (!passed) return;
+    form.querySelector('button[type=submit]').disabled = true;
+    const pass = document.getElementById('pass'), body = document.getElementById('passbody');
+    if (D.review) body.innerHTML = '<p>Nothing to paste. You can close this page.</p>';
+    else {
+      body.innerHTML = '<p>Copy this code and paste it into Claude Code to unlock the build:</p><p><code id="code"></code> <button type="button" id="copy">Copy</button></p><p>Copy includes a short record of your answers for your Learning Log.</p>';
+      document.getElementById('code').textContent = VC.passCode();
+      document.getElementById('copy').onclick = ev => VC.copy(quiz.resultCode(), ev.target);
+    }
+    pass.hidden = false; pass.scrollIntoView();
+  });
+})();
+</script>
+</body>
+</html>

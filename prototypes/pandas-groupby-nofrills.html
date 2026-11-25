@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vibe Check: pandas groupby (prototype C: no frills)</title>
+<style>
+:root{color-scheme:light dark}
+body{max-width:40rem;margin:0 auto;padding:1.5rem 1rem 4rem;font:1rem/1.55 system-ui,sans-serif}
+h1{font-size:1.6rem;margin:0 0 .25rem}
+h2{font-size:1.25rem;margin:2.5rem 0 .5rem;padding-top:1rem;border-top:1px solid}
+h3{font-size:1rem;margin:1.5rem 0 .25rem}
+table{border-collapse:collapse;margin:.75rem 0}
+th,td{text-align:left;padding:.25rem 1rem .25rem 0;border-bottom:1px solid color-mix(in srgb,currentColor 25%,transparent)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+pre,code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem}
+pre{overflow:auto;margin:.5rem 0;padding:.5rem .75rem;border-left:3px solid}
+fieldset{margin:1.25rem 0;padding:.75rem 1rem;border:1px solid}
+legend{font-weight:700;padding:0 .4rem}
+label{display:block;padding:.3rem 0}
+label pre{display:inline-block;vertical-align:top;margin:0;border:0;padding:0}
+select{font:inherit}
+button{font:inherit;padding:.4rem .9rem}
+.fb{margin:.5rem 0 0;font-weight:600}
+#code{font-size:1.5rem;font-weight:700;letter-spacing:.1em}
+</style>
+</head>
+<body>
+
+<h1>Vibe Check: pandas groupby</h1>
+<p>Read the lesson, then answer three questions. Get all three right to see your pass code.</p>
+
+<h2>Lesson</h2>
+
+<h3>1. The problem</h3>
+<p>Your PM asks: "What's our total weight in each region?" You have one row per stock:</p>
+<table>
+  <tr><th>ticker</th><th>region</th><th>sector</th><th class="n">weight</th></tr>
+  <tr><td>AAA</td><td>Europe</td><td>Tech</td><td class="n">5%</td></tr>
+  <tr><td>BBB</td><td>Asia</td><td>Banks</td><td class="n">3%</td></tr>
+  <tr><td>CCC</td><td>Europe</td><td>Health</td><td class="n">4%</td></tr>
+  <tr><td>DDD</td><td>EM</td><td>Tech</td><td class="n">2%</td></tr>
+  <tr><td>EEE</td><td>Asia</td><td>Health</td><td class="n">5%</td></tr>
+  <tr><td>FFF</td><td>EM</td><td>Banks</td><td class="n">1%</td></tr>
+</table>
+<p>Adding by hand works for 6 rows, not for 600. pandas does it in one line:</p>
+<pre>df.groupby('region')['weight'].sum()</pre>
+
+<h3>2. What that line does</h3>
+<ol>
+  <li><b>Split.</b> <code>groupby('region')</code> sorts the rows into piles, one pile per region. Nothing is added up yet.</li>
+  <li><b>Apply.</b> <code>['weight'].sum()</code> adds up the weight inside each pile.</li>
+  <li><b>Combine.</b> The totals come back as one small table, one row per region.</li>
+</ol>
+<table>
+  <tr><th>region</th><th>rows in the pile</th><th class="n">sum</th></tr>
+  <tr><td>Europe</td><td>AAA 5, CCC 4</td><td class="n">9</td></tr>
+  <tr><td>Asia</td><td>BBB 3, EEE 5</td><td class="n">8</td></tr>
+  <tr><td>EM</td><td>DDD 2, FFF 1</td><td class="n">3</td></tr>
+</table>
+
+<h3>3. Swap the last word</h3>
+<p>The piles stay the same. Only the math done on each pile changes.</p>
+<table>
+  <tr><th>region</th><th class="n">.sum()</th><th class="n">.mean()</th><th class="n">.count()</th><th class="n">.max()</th></tr>
+  <tr><td>Europe</td><td class="n">9</td><td class="n">4.5</td><td class="n">2</td><td class="n">5</td></tr>
+  <tr><td>Asia</td><td class="n">8</td><td class="n">4.0</td><td class="n">2</td><td class="n">5</td></tr>
+  <tr><td>EM</td><td class="n">3</td><td class="n">1.5</td><td class="n">2</td><td class="n">2</td></tr>
+</table>
+
+<h2>Questions</h2>
+<form id="quiz">
+
+<fieldset id="q1">
+  <legend>1. What does this give you?</legend>
+  <pre>df.groupby('region')['weight'].mean()</pre>
+  <label><input type="radio" name="q1" value="0"> <pre>Europe    9
+Asia      8
+EM        3</pre></label>
+  <label><input type="radio" name="q1" value="1"> <pre>Europe    4.5
+Asia      4.0
+EM        1.5</pre></label>
+  <label><input type="radio" name="q1" value="2"> <pre>3.33</pre></label>
+  <p class="fb" role="status"></p>
+</fieldset>
+
+<fieldset id="q2">
+  <legend>2. In what order do these happen?</legend>
+  <pre>df.groupby('region')['weight'].sum()</pre>
+  <label><select name="q2a"><option value="">?</option><option>1st</option><option>2nd</option><option>3rd</option></select> Combine the totals into one small table, one row per region</label>
+  <label><select name="q2b"><option value="">?</option><option>1st</option><option>2nd</option><option>3rd</option></select> Split the rows into piles by region</label>
+  <label><select name="q2c"><option value="">?</option><option>1st</option><option>2nd</option><option>3rd</option></select> Add up the weight inside each pile</label>
+  <p class="fb" role="status"></p>
+</fieldset>
+
+<fieldset id="q3">
+  <legend>3. A coworker asks what this does. Which answer is best?</legend>
+  <pre>df.groupby('sector')['weight'].sum()</pre>
+  <label><input type="radio" name="q3" value="0"> It sorts the table by sector.</label>
+  <label><input type="radio" name="q3" value="1"> It adds up the portfolio weight for each sector, so you get one total per sector.</label>
+  <label><input type="radio" name="q3" value="2"> It removes duplicate sectors from the table.</label>
+  <label><input type="radio" name="q3" value="3"> It adds all the weights into one number.</label>
+  <p class="fb" role="status"></p>
+</fieldset>
+
+<button type="submit">Check answers</button>
+<p id="result" role="status"></p>
+</form>
+
+<section id="pass" hidden>
+  <h2>Passed</h2>
+  <p>Paste this code into Claude Code to unlock the build:</p>
+  <p><code id="code"></code> <button type="button" id="copy">Copy</button></p>
+</section>
+
+<script>
+const form = document.getElementById('quiz');
+const WHY = {
+  q1: 'mean averages each pile: Europe (5+4)/2 = 4.5, Asia (3+5)/2 = 4.0, EM (2+1)/2 = 1.5. The 9 / 8 / 3 answer is what sum would give.',
+  q2: 'Split, apply, combine: make the piles first, do the math on each pile, then put the answers together.',
+  q3: 'groupby plus sum gives one total per group. Sorting or removing duplicates does no math, and a single number would be df["weight"].sum().',
+};
+const isRight = {
+  q1: f => f.q1.value === '1',
+  q2: f => f.q2b.value === '1st' && f.q2c.value === '2nd' && f.q2a.value === '3rd',
+  q3: f => f.q3.value === '1',
+};
+const done = new Set();
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  for (const id of ['q1', 'q2', 'q3']) {
+    if (done.has(id)) continue;
+    const box = document.getElementById(id), fb = box.querySelector('.fb');
+    if (isRight[id](form)) {
+      done.add(id);
+      fb.textContent = 'Correct. ' + WHY[id];
+      box.disabled = true;
+    } else {
+      fb.textContent = 'Not quite. ' + WHY[id] + ' Try this one again.';
+      box.querySelectorAll('input').forEach(i => i.checked = false);
+      box.querySelectorAll('select').forEach(s => s.value = '');
+    }
+  }
+  const left = 3 - done.size;
+  document.getElementById('result').textContent = left
+    ? done.size + ' of 3 correct. Fix the ' + (left === 1 ? 'one' : 'ones') + ' marked "Not quite" and check again.'
+    : '3 of 3 correct.';
+  if (!left) {
+    const code = 'VC-' + Math.random().toString(36).slice(2, 6).toUpperCase().padEnd(4, 'X');
+    document.getElementById('code').textContent = code;
+    const pass = document.getElementById('pass');
+    pass.hidden = false;
+    form.querySelector('button[type=submit]').disabled = true;
+    pass.scrollIntoView();
+    document.getElementById('copy').onclick = e => {
+      try { navigator.clipboard.writeText(code).then(() => e.target.textContent = 'Copied', () => e.target.textContent = 'Select it and copy'); }
+      catch (err) { e.target.textContent = 'Select it and copy'; }
+    };
+  }
+});
+</script>
+</body>
+</html>
