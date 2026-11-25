@@ -23,13 +23,13 @@ Need to just ship? Type `/vee-check:skip`. It's your tool. A skipped concept com
 In Claude Code:
 
 ```
-/plugin install vee-check --marketplace PatTheRatch/vibe-check
+/plugin install vee-check --marketplace PatTheRatch/vee-check
 ```
 
 On versions before 2.1.275, do it in two steps:
 
 ```
-/plugin marketplace add PatTheRatch/vibe-check
+/plugin marketplace add PatTheRatch/vee-check
 /plugin install vee-check@vee-check
 ```
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vibe Check · pandas groupby (prototype B: overkill)</title>
+<title>Vee Check · pandas groupby (prototype B: overkill)</title>
 <style>
 :root{--bg:#090b12;--card:#151826;--deep:#0b0d15;--line:#2a2f45;--text:#eef0f7;--muted:#9aa1b8;--accent:#8b5cf6;--hot:#ec4899;--cool:#22d3ee;--good:#22c55e;--bad:#ef4444;--eu:#3b82f6;--as:#f59e0b;--em:#ec4899}
 *{box-sizing:border-box}
@@ -188,7 +188,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="wrap" id="wrap">
   <header>
-    <div class="logo">Vibe <span>Check</span></div>
+    <div class="logo">Vee <span>Check</span></div>
     <div class="stats">
       <span class="pill combo" id="combo" hidden></span>
       <span class="pill" id="streakPill">🔥 <b id="streak">3</b>-day streak</span>
@@ -348,7 +348,7 @@ function go(i){progress(i+1);[story,sorter,playground,startQuiz][i]();window.scr
 function splash(){
   enter();progress(0);resetSession();
   $('#main').innerHTML=`<div class="splash">
-    <div class="big">${[...'Vibe'].map((c,i)=>`<b style="animation-delay:${i*70}ms">${c}</b>`).join('')}<span>${[...'Check'].map((c,i)=>`<b style="animation-delay:${(i+4)*70}ms">${c}</b>`).join('')}</span></div>
+    <div class="big">${[...'Vee'].map((c,i)=>`<b style="animation-delay:${i*70}ms">${c}</b>`).join('')}<span>${[...'Check'].map((c,i)=>`<b style="animation-delay:${(i+3)*70}ms">${c}</b>`).join('')}</span></div>
     <p class="muted" style="margin-top:18px">Before Claude writes this code, a quick one on</p>
     <div class="topic">pandas groupby</div>
     <div class="row"><button class="btn glow" id="s1" data-enter>Start with sound 🔊</button><button class="btn ghost" id="s0">Start quiet</button></div>
@@ -576,7 +576,7 @@ async function win(){
   const secs=Math.round((Date.now()-session.start)/1000),time=secs>=60?Math.floor(secs/60)+'m '+(secs%60)+'s':secs+'s';
   h(`<div class="door dl"></div><div class="door dr"></div><div class="lock">🔒</div>
     <div class="center">
-      <div class="tag">Vibe Check passed</div>
+      <div class="tag">Vee Check passed</div>
       <div class="coin" id="coin" title="Flip me"><div class="face">🧩</div><div class="face back">groupby</div></div>
       <h2>Badge unlocked: <code>groupby</code></h2>
       <div class="statrow">

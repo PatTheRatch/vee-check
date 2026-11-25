@@ -144,8 +144,10 @@ renamed it **Vee Check**, after Vee the mascot, who is also the icon. Plugin id 
 commands `/vee-check:...`, state folders `.vee-check/` and `~/.vee-check/`, environment
 variables `VEE_CHECK_HOME` and `VEE_CHECK_NO_OPEN`.
 - The tagline "Learn as you vibe" and the phrase "vibe coding" stay.
-- The GitHub repo is still `PatTheRatch/vibe-check` and this folder is still `vibe-check`
-  until Patrick renames them himself. `prototypes/` keeps the old name on purpose.
+- The GitHub repo was renamed to `PatTheRatch/vee-check` the same day (GitHub redirects the
+  old address) and the prototypes now say Vee Check too.
+- Only the local folder is still called `vibe-check`. Renaming it has to happen outside a
+  Claude Code session, because the session and its saved memory are tied to the folder path.
 
 ## Learning tracks: what kind of thing to learn
 Not everyone cares about the code. Someone building a portfolio risk platform needs to know how
