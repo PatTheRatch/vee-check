@@ -47,6 +47,19 @@ details{margin:.5rem 0}
     if (s.type === 'card') out += `<p>${fmt(s.body)}</p>${pre(s.code)}${s.output ? `<details><summary>Decide what this prints, then open</summary><pre>${esc(s.output)}</pre></details>` : ''}`;
     if (s.type === 'playground') out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + Object.keys(s.results).map(k => { const r = s.results[k];
       return `<h4>${esc(k.split('|').join(', '))}</h4>${pre(r.code)}${table({ columns: [], rows: r.rows || [] })}${r.say ? `<p>${fmt(r.say)}</p>` : ''}`; }).join('');
+    if (s.type === 'sort') { const groups = s.groups || [...new Set(s.items.map(x => x.group))], res = (s.result || {}).per_group;
+      out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + pre(s.code) + table({ columns: ['group', 'what belongs in it'].concat(res ? ['result'] : []),
+        rows: groups.map(g => [g, s.items.filter(x => x.group === g).map(x => x.label + (x.detail ? ' (' + x.detail + ')' : '')).join(', ')].concat(res ? [res[g] === undefined ? '' : res[g]] : [])) })
+        + pre((s.result || {}).code) + (((s.result || {}).say || s.say) ? `<p>${fmt((s.result || {}).say || s.say)}</p>` : ''); }
+    if (s.type === 'match') { const ex = s.extras || {};
+      out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + `<div class="wide"><table><tr><th>${esc(s.left_title || '')}</th><th>${esc(s.right_title || 'matches')}</th></tr>${s.pairs.map(p => `<tr><td>${fmt(p.left)}</td><td>${fmt(p.right)}</td></tr>`).join('')}`
+        + (ex.left || []).map(t => `<tr><td>${fmt(t)}</td><td>(no match)</td></tr>`).join('') + (ex.right || []).map(t => `<tr><td>(no match)</td><td>${fmt(t)}</td></tr>`).join('') + '</table></div>' + (s.say ? `<p>${fmt(s.say)}</p>` : ''); }
+    if (s.type === 'flow') out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + `<ol>${s.steps.map(st => `<li><b>${esc((s.nodes[st.at] || {}).label || '')}.</b> ${fmt(st.text)}${st.value !== undefined ? pre(String(st.value)) : ''}</li>`).join('')}</ol>`;
+    if (s.type === 'slider') out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + (s.cells ? pre(s.cells.map((c, k) => k + ': ' + c).join('   ')) : '')
+      + `<div class="wide"><table><tr><th>${esc(s.label || 'setting')}</th><th>what you get</th></tr>${s.positions.map(p => `<tr><td>${esc(p.label)}</td><td>${p.code ? `<code>${code(p.code)}</code> ` : ''}${fmt(p.say || '')}</td></tr>`).join('')}</table></div>`;
+    if (s.type === 'build') out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + pre(s.pieces.join(''))
+      + `<p>The pieces, in order: ${s.pieces.map(t => `<code>${esc(t.trim())}</code>`).join(', then ')}.</p>` + (s.say ? `<p>${fmt(s.say)}</p>` : '');
+    if (s.type === 'compare') out += (s.body ? `<p>${fmt(s.body)}</p>` : '') + '<h4>Before</h4>' + table(s.before) + pre(s.code) + '<h4>After</h4>' + table(s.after) + (s.say ? `<p>${fmt(s.say)}</p>` : '');
     if (s.deeper) out += `<details><summary>Go deeper</summary><p>${fmt(s.deeper)}</p></details>`;
     return out;
   }
@@ -56,8 +69,12 @@ details{margin:.5rem 0}
     if (q.type === 'order') {
       const places = q.items.map((_, n) => `<option value="${n}">${n + 1}</option>`).join('');
       body += VC.scramble(q.items.length, i + q.items.length).map(item => `<label><select data-item="${item}"><option value="">?</option>${places}</select> ${fmt(q.items[item])}</label>`).join('');
+    } else if (q.type === 'match') {
+      const rights = VC.scramble(q.pairs.length, i + q.pairs.length).map(n => `<option value="${n}">${esc(q.pairs[n].right)}</option>`).join('');
+      body += q.pairs.map((p, n) => `<label>${fmt(p.left)} <select data-item="${n}"><option value="">?</option>${rights}</select></label>`).join('');
     } else {
-      body += q.options.map((o, n) => `<label><input type="radio" name="q${i}" value="${n}"> ${q.type === 'predict' ? `<pre>${esc(o)}</pre>` : fmt(o)}</label>`).join('');
+      const opts = q.type === 'bug' ? q.lines : q.options, mono = ['predict', 'bug', 'fill'].includes(q.type);
+      body += opts.map((o, n) => `<label><input type="radio" name="q${i}" value="${n}"> ${mono ? `<pre>${esc(o)}</pre>` : fmt(o)}</label>`).join('');
     }
     return `<fieldset id="q${i}"><legend>${i + 1}. ${q.type === 'expect' ? 'What do you expect? ' : ''}${fmt(q.prompt)}</legend>${body}<p class="fb" role="status"></p></fieldset>`;
   }
@@ -77,9 +94,9 @@ details{margin:.5rem 0}
       if (quiz.right.has(i)) return;
       const box = document.getElementById('q' + i), fb = box.querySelector('.fb');
       let mark, ok;
-      if (q.type === 'order') {
+      if (q.type === 'order' || q.type === 'match') {
         const picks = [...box.querySelectorAll('select')];
-        if (picks.some(s => s.value === '')) { fb.textContent = 'Give every step a position.'; return; }
+        if (picks.some(s => s.value === '')) { fb.textContent = q.type === 'match' ? 'Pick a match for every row.' : 'Give every step a position.'; return; }
         ok = picks.every(s => s.value === s.dataset.item); mark = ok ? 'y' : 'n';
       } else {
         const pick = form.elements['q' + i].value;
@@ -90,7 +107,7 @@ details{margin:.5rem 0}
       const exp = q.type === 'expect';
       fb.innerHTML = (ok ? (exp ? 'That is what the code does. ' : 'Correct. ') : (exp ? 'The code does something else. ' : 'Not quite. ')) + fmt(q.why)
         + (q.source ? ` (${esc(q.source)})` : '') + (ok ? '' : ' Try this one again.')
-        + (!ok && q.type !== 'order' ? ` <button type="button" data-dispute="${i}">That's not what it should do</button>` : '');
+        + (!ok && q.type !== 'order' && q.type !== 'match' ? ` <button type="button" data-dispute="${i}">That's not what it should do</button>` : '');
       if (ok) box.disabled = true;
       else { box.querySelectorAll('input').forEach(x => x.checked = false); box.querySelectorAll('select').forEach(x => x.value = ''); }
     });

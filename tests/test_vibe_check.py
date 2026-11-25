@@ -234,6 +234,50 @@ class CliTests(Base):
         self.assertIn("Flask routes [code]: known", listing)
         self.assertIn("pandas groupby [code]: on the learning list", listing)
 
+    def test_template_library_example_builds_in_every_look(self):
+        tour = REPO / "examples" / "pandas-playground" / "quiz-example-templates" / "template-tour.json"
+        self.vc("config", "set", "lesson_cards", "6")
+        for look in ("arcade", "classic", "plain"):
+            with self.subTest(look=look):
+                self.vc("config", "set", "look", look)
+                self.vc("start", "template tour")
+                shutil.copy(tour, self.project / ".vibe-check" / "quizzes" / "template-tour.json")
+                code, out = self.vc("build")
+                self.assertEqual(code, 0, out)
+                data, _ = self.page_data("template-tour")
+                self.assertEqual([s["type"] for s in data["lesson"]], ["sort", "match", "flow", "slider", "build", "compare"])
+                self.assertEqual([q["type"] for q in data["questions"]], ["fill", "bug", "match"])
+                self.vc("skip")
+
+    def test_template_content_is_checked(self):
+        self.vc("start", "bad templates")
+        bad = {"lesson": [
+            {"type": "sort", "title": "t", "items": [{"label": "a", "group": "x"}, {"label": "b", "group": "x"}]},
+            {"type": "flow", "title": "t", "nodes": [{"label": "A"}, {"label": "B"}], "steps": [{"at": 5, "text": "x"}]},
+            {"type": "build", "title": "t", "pieces": ["only one"]}],
+            "questions": [{"type": "fill", "prompt": "p", "why": "w", "code": "no blank here", "options": ["a", "b"], "answer": 0},
+                          {"type": "bug", "prompt": "p", "why": "w", "lines": ["a", "b"], "answer": 7}]}
+        (self.project / ".vibe-check" / "quizzes" / "bad-templates.json").write_text(json.dumps(bad))
+        code, out = self.vc("build")
+        self.assertEqual(code, 1)
+        for expected in ("2 different groups", '"at"', '"pieces"', "___", "line with the bug"):
+            self.assertIn(expected, out)
+
+    def test_bug_and_match_answers_reach_the_history(self):
+        tour = REPO / "examples" / "pandas-playground" / "quiz-example-templates" / "template-tour.json"
+        self.vc("config", "set", "lesson_cards", "6")
+        self.vc("start", "template tour")
+        shutil.copy(tour, self.project / ".vibe-check" / "quizzes" / "template-tour.json")
+        self.vc("build")
+        data, _ = self.page_data("template-tour")
+        code = base64.b64decode(data["code"]).decode()
+        status, out = self.vc("unlock", code + ".1-02-ny")
+        self.assertEqual(status, 0, out)
+        questions = json.loads((self.home / "history.jsonl").read_text().splitlines()[-1])["questions"]
+        self.assertEqual(questions[1]["answers"], ["import pandas as pd", "totals = df.groupby('weight')['region'].sum()"])
+        self.assertEqual(questions[2]["answers"], ["wrong", "right"])
+        self.assertEqual([q["tries"] for q in questions], [1, 2, 2])
+
     def test_classic_is_the_default_look(self):
         self.start_and_build()
         self.assertEqual(self.page_data()[0]["look"], "classic")

@@ -62,8 +62,8 @@ SETTINGS = {
     "pass_bar": ("all", None, '"all", or how many questions must be right, for example 2'),
     "trigger": ("new_concepts", ["new_concepts", "big_concepts_only", "manual"], "when a Vibe Check starts"),
 }
-SCENE_TYPES = {"story", "steps", "playground", "card", "custom"}
-QUESTION_TYPES = {"choice", "predict", "explain", "order", "expect"}
+SCENE_TYPES = {"story", "steps", "playground", "card", "custom", "sort", "match", "flow", "slider", "build", "compare"}
+QUESTION_TYPES = {"choice", "predict", "explain", "order", "expect", "fill", "bug", "match"}
 TRACKS = ["domain", "architecture", "code"]
 CONCEPT_GROUPS = ["big_picture", "tools", "techniques"]
 CONCEPT_STATUSES = ["learning", "known", "gate"]
@@ -250,6 +250,38 @@ def check_scene(scene, where, problems, allow_custom=True):
             missing = [k for k in keys if k not in results]
             if missing:
                 problems.append(f'{where}: "results" is missing these combinations: {", ".join(missing[:6])}.')
+    listed = lambda value, least=1: isinstance(value, list) and len(value) >= least
+    if kind == "sort":
+        items = scene.get("items")
+        if not (listed(items, 2) and all(isinstance(x, dict) and x.get("label") and x.get("group") for x in items)):
+            problems.append(f'{where}: a sort scene needs "items", each with a "label" and the "group" it belongs to.')
+        elif len({x["group"] for x in items}) < 2:
+            problems.append(f"{where}: a sort scene needs at least 2 different groups.")
+        elif scene.get("groups") and {x["group"] for x in items} - set(scene["groups"]):
+            problems.append(f'{where}: every item\'s "group" must appear in "groups".')
+    if kind == "match":
+        pairs = scene.get("pairs")
+        if not (listed(pairs, 2) and all(isinstance(p, dict) and p.get("left") and p.get("right") for p in pairs)):
+            problems.append(f'{where}: a match scene needs 2 or more "pairs", each with "left" and "right".')
+    if kind == "flow":
+        nodes, steps = scene.get("nodes"), scene.get("steps")
+        if not (listed(nodes, 2) and all(isinstance(n, dict) and n.get("label") for n in nodes)):
+            problems.append(f'{where}: a flow scene needs 2 or more "nodes", each with a "label".')
+        elif not (listed(steps) and all(isinstance(s, dict) and s.get("text") and isinstance(s.get("at"), int)
+                                        and 0 <= s["at"] < len(nodes) for s in steps)):
+            problems.append(f'{where}: each flow step needs "text" and "at", the position of its node counting from 0.')
+    if kind == "slider":
+        positions = scene.get("positions")
+        if not (listed(positions, 2) and all(isinstance(p, dict) and "label" in p and p.get("say") for p in positions)):
+            problems.append(f'{where}: a slider scene needs 2 or more "positions", each with a "label" and a "say".')
+    if kind == "build":
+        if not (listed(scene.get("pieces"), 2) and all(isinstance(t, str) and t for t in scene["pieces"])):
+            problems.append(f'{where}: a build scene needs "pieces", the parts of the line in the correct order.')
+    if kind == "compare":
+        for side in ("before", "after"):
+            table = scene.get(side)
+            if not (isinstance(table, dict) and listed(table.get("rows"))):
+                problems.append(f'{where}: a compare scene needs "{side}" with "rows".')
     if kind == "custom":
         if not allow_custom:
             problems.append(f"{where}: a fallback can't itself be a custom scene.")
@@ -288,7 +320,19 @@ def check_content(content):
             items = question.get("items")
             if not (isinstance(items, list) and 2 <= len(items) <= 9):
                 problems.append(f'{where}: "items" must list 2 to 9 steps, in the correct order.')
+        elif question["type"] == "match":
+            pairs = question.get("pairs")
+            if not (isinstance(pairs, list) and 2 <= len(pairs) <= 9 and all(isinstance(p, dict) and p.get("left") and p.get("right") for p in pairs)):
+                problems.append(f'{where}: "pairs" must list 2 to 9 pairs, each with "left" and "right".')
+        elif question["type"] == "bug":
+            lines, answer = question.get("lines"), question.get("answer")
+            if not (isinstance(lines, list) and 2 <= len(lines) <= 9):
+                problems.append(f'{where}: "lines" must list 2 to 9 lines of code.')
+            elif not (isinstance(answer, int) and not isinstance(answer, bool) and 0 <= answer < len(lines)):
+                problems.append(f'{where}: "answer" must be the position of the line with the bug, counting from 0.')
         else:
+            if question["type"] == "fill" and "___" not in str(question.get("code", "")):
+                problems.append(f'{where}: a fill question needs "code" with ___ (three underscores) where the blank goes.')
             options, answer = question.get("options"), question.get("answer")
             if not (isinstance(options, list) and 2 <= len(options) <= 9):
                 problems.append(f'{where}: "options" must list 2 to 9 choices.')
@@ -401,10 +445,10 @@ def parse_trail(tail, questions):
     for number, question in enumerate(questions):
         marks = parts[number] if number < len(parts) else ""
         marks = "" if marks == "x" else marks.replace("d", "")
-        if question.get("type") == "order":
-            trails.append(["right order" if m == "y" else "wrong order" for m in marks if m in "yn"])
+        if question.get("type") in ("order", "match"):
+            trails.append(["right" if m == "y" else "wrong" for m in marks if m in "yn"])
         else:
-            options = question.get("options", [])
+            options = question.get("lines") if question.get("type") == "bug" else question.get("options", [])
             trails.append([options[int(m)] for m in marks if m.isdigit() and int(m) < len(options)])
     return trails
 
@@ -415,8 +459,8 @@ def find_disputes(content, tail):
     parts = tail.split("-") if tail else []
     found = []
     for number, (question, answers) in enumerate(zip(questions, parse_trail(tail, questions))):
-        if number < len(parts) and "d" in parts[number] and question.get("type") != "order":
-            options = question.get("options", [])
+        if number < len(parts) and "d" in parts[number] and question.get("type") not in ("order", "match"):
+            options = question.get("lines") if question.get("type") == "bug" else question.get("options", [])
             answer = question.get("answer")
             found.append({
                 "question": number + 1, "prompt": question.get("prompt"),
@@ -436,7 +480,7 @@ def add_history(state, pending, result, content=None, tail=""):
             argued = number in disputed
             questions.append({
                 "type": question["type"], "prompt": question["prompt"],
-                "options": question.get("options") or question.get("items"),
+                "options": question.get("options") or question.get("items") or question.get("lines") or question.get("pairs"),
                 "answer": question.get("answer"), "why": question["why"], "source": question.get("source"),
                 "answers": tries, "tries": 1 if argued else max(1, len(tries)),
                 "missed": len(tries) > 1 and not argued, "disputed": argued,

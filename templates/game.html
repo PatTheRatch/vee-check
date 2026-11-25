@@ -117,6 +117,34 @@ button{font:inherit;cursor:pointer;color:inherit}
 .stat{background:var(--deep);border:1px solid var(--line);border-radius:12px;padding:10px 6px}
 .stat b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.stat small{color:var(--muted);font-size:12px}
 .code{font:800 clamp(22px,6.5vw,32px) ui-monospace,Menlo,monospace;letter-spacing:.12em;background:var(--deep);border:2px dashed var(--accent);border-radius:12px;padding:12px 20px;display:inline-block;margin:10px 0}
+/* template library */
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:14px 0}
+.node{flex:1 1 110px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#11141c;transition:border-color .3s,background .3s,transform .3s;opacity:.55}
+.node b{display:block}.node small{color:var(--muted);font-size:12px}
+.node.done{opacity:1}.node.on{opacity:1;border-color:var(--accent);background:rgba(139,92,246,.16);transform:translateY(-3px)}
+.arrow{align-self:center;color:var(--muted)}
+.packet{display:inline-block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;background:var(--deep);border:1px dashed var(--accent);border-radius:10px;padding:6px 12px;margin:2px 0 8px;animation:pop .3s}
+.cells{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.cell{min-width:44px;text-align:center;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:#11141c;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;transition:all .2s}
+.cell small{display:block;color:var(--muted);font-size:10px}
+.cell.on{border-color:var(--accent);background:rgba(139,92,246,.22);transform:translateY(-3px)}
+.slide{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;margin:12px 0}
+.slide input{width:100%;accent-color:var(--accent)}
+.slide b{font-family:ui-monospace,Menlo,Consolas,monospace;min-width:48px;text-align:right}
+.line{display:flex;flex-wrap:wrap;gap:6px;min-height:52px;padding:10px;border:1px solid var(--accent);border-radius:12px;background:var(--deep);margin:10px 0;align-items:center}
+.line:empty::before{content:"Tap the pieces below in order";color:var(--muted);font-size:14px}
+.pool{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.piece{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;background:#1c2134;border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.piece:disabled{opacity:.25}
+.line.wrongline{animation:shake .4s;border-color:var(--bad)}.line.rightline{border-color:var(--good)}
+.matchgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.matchgrid .tray{flex-direction:column;margin:0}
+.matchgrid .slotcol{display:flex;flex-direction:column;gap:8px}
+.matchgrid .bucket{min-height:0;padding:8px 10px}
+.matchgrid .bucket .pile{margin-top:6px}
+.blank{display:inline-block;min-width:54px;text-align:center;border-bottom:2px solid var(--accent);color:var(--cool)}
+.lft{flex:0 0 38%;font-weight:700;border-right:1px solid var(--line);padding-right:10px}
+.res:empty{display:none}
 .deeper{margin-top:14px}.deeper .fb{border:1px solid var(--line);background:var(--deep)}
 .note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px}
 .vee,.levelup,.combo,.arcade-only{display:none}
@@ -394,7 +422,7 @@ function splash(){
 
 function renderScene(i){
   const s=LESSON[i];
-  try{({story,steps,playground,card,custom})[s.type](s,i);deeper(s)}
+  try{({story,steps,playground,card,custom,sort,match,flow,slider,build,compare})[s.type](s,i);deeper(s)}
   catch(err){console.error('Vibe Check scene failed',err);if(s.fallback){LESSON[i]=s.fallback;renderScene(i)}else h(tagOf(i,s)+'<p class="muted">This scene could not be shown.</p>'+navOf(i))}
 }
 
@@ -462,6 +490,107 @@ function card(s,i){
     for(const line of String(s.output).split('\n')){if(my!==scene)return;$('#out').textContent+='\n'+line;sfx.tick();await wait(260)}};
 }
 
+
+// ---------- template library: lesson scenes ----------
+const lead=s=>(s.body?`<p>${fmt(s.body)}</p>`:'');
+function stagger(list,fn,gap=260){const my=scene;list.forEach((x,k)=>setTimeout(()=>{if(my===scene)fn(x,k)},calm?0:k*gap))}
+
+// sort: drag each item into the pile it belongs to, then (optionally) press a button for the result
+function sort(s,i){
+  enter();const groups=s.groups||[...new Set(s.items.map(x=>x.group))];let placed=0;
+  h(tagOf(i,s)+lead(s)+(s.code?`<pre id="scode">${codeHTML(s.code)}</pre>`:'')+`<p class="muted small">Drag each one into its pile, or tap it and then tap a pile.</p>
+    <div class="tray" id="tray">${s.items.map((x,k)=>`<div class="chip" data-k="${k}"><b>${esc(x.label)}</b>${x.detail?` <span class="muted">${esc(x.detail)}</span>`:''}</div>`).join('')}</div>
+    <div class="buckets">${groups.map((g,k)=>`<div class="bucket g${k%6}" data-k="${k}"><b>${esc(g)}</b><div class="pile"></div><div class="res"></div></div>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" id="auto">Do it for me</button>${s.result?`<button class="btn" id="res" disabled>${esc(s.result.button||'Show the result')}</button>`:''}</div>
+    <p class="muted" id="ssay"></p>`+navOf(i));
+  const groupOf=c=>groups.indexOf(s.items[+c.dataset.k].group),bucket=k=>$(`.bucket[data-k="${k}"]`);
+  const finish=()=>{$('#ssay').innerHTML=fmt((s.result&&s.result.say)||s.say||'');$('#next').classList.toggle('glow',A);say('Sorted.','happy')};
+  const board=dragDrop({items:$$('#tray .chip'),targets:$$('.bucket'),accepts:(c,b)=>groupOf(c)===+b.dataset.k,
+    onDrop:(c,b)=>{b.querySelector('.pile').appendChild(c);if(++placed===s.items.length){$('#auto').hidden=true;const r=$('#res');if(r){r.disabled=false;r.classList.toggle('glow',A)}else finish()}},
+    onReject:c=>{const it=s.items[+c.dataset.k];say(`${it.label} goes with ${it.group}.`,'sad')}});
+  $('#auto').onclick=()=>{$('#auto').disabled=true;stagger($$('#tray .chip'),c=>board.place(c,bucket(groupOf(c))))};
+  if(s.result)$('#res').onclick=()=>{$('#res').disabled=true;if(s.result.code&&$('#scode'))$('#scode').innerHTML=codeHTML(s.result.code);
+    stagger($$('.bucket'),(b,k)=>{const v=(s.result.per_group||{})[groups[k]];if(v!==undefined){b.querySelector('.pile').hidden=true;b.querySelector('.res').innerHTML=`<div class="total">${esc(v)}</div>`}
+      if(A)burst(...mid(b),20,5);sfx.crush();if(k===groups.length-1)finish()},420)};
+}
+
+// match: drag each item on the left onto its partner on the right; extras have no partner
+function match(s,i){
+  // several left items may share one partner (many orders, one customer), so partners are listed once
+  enter();const names=[...new Set(s.pairs.map(p=>p.right))];
+  const lefts=s.pairs.map(p=>({t:p.left,k:names.indexOf(p.right)})).concat(((s.extras||{}).left||[]).map(t=>({t,k:-1})));
+  const order=VC.scramble(lefts.length,lefts.length+3).map(n=>lefts[n]);let placed=0;
+  const rights=names.map((t,k)=>({t,k})).concat(((s.extras||{}).right||[]).map(t=>({t,k:-2})));
+  h(tagOf(i,s)+lead(s)+`<p class="muted small">Drag each one onto its match, or tap it and then tap the match.${lefts.length>s.pairs.length?' Some have no match.':''}</p>
+    <div class="matchgrid"><div><div class="small muted">${esc(s.left_title||'')}</div><div class="tray" id="tray">${order.map(x=>`<div class="chip" data-k="${x.k}">${fmt(x.t)}</div>`).join('')}</div></div>
+    <div><div class="small muted">${esc(s.right_title||'')}</div><div class="slotcol">${rights.map(x=>`<div class="bucket" data-k="${x.k}">${fmt(x.t)}<div class="pile"></div></div>`).join('')}</div></div></div>
+    <div class="row"><button class="btn ghost" id="auto">Do it for me</button></div><p class="muted" id="ssay"></p>`+navOf(i));
+  const finish=()=>{$('#auto').hidden=true;$('#ssay').innerHTML=fmt(s.say||'');$('#next').classList.toggle('glow',A);say('All matched.','happy')};
+  const board=dragDrop({items:$$('#tray .chip'),targets:$$('.bucket'),accepts:(c,b)=>+c.dataset.k>=0&&c.dataset.k===b.dataset.k,
+    onDrop:(c,b)=>{b.querySelector('.pile').appendChild(c);b.classList.add('g1');if(++placed===s.pairs.length)finish()},
+    onReject:c=>say(+c.dataset.k<0?'That one has no match. It stays behind.':'Not that one. Look again.','sad')});
+  $('#auto').onclick=()=>{$('#auto').disabled=true;stagger($$('#tray .chip').filter(c=>+c.dataset.k>=0),c=>board.place(c,$(`.bucket[data-k="${c.dataset.k}"]`)))};
+}
+
+// flow: follow one thing as it moves through the parts of the system
+function flow(s,i){
+  enter();let n=0;
+  h(tagOf(i,s)+lead(s)+`<div class="flow" id="flow">${s.nodes.map((x,k)=>`<div class="node" data-k="${k}"><b>${esc(x.label)}</b>${x.detail?`<small>${esc(x.detail)}</small>`:''}</div>`).join('<span class="arrow" aria-hidden="true">→</span>')}</div>
+    <div id="packetbox"></div><p id="steptxt"></p><div class="dots" id="dots"></div>
+    <div class="nav">${i>0?`<button class="btn ghost" data-go="${i-1}">Back</button>`:'<span></span>'}<button class="btn" id="nextStep" data-enter></button></div>`);
+  const draw=()=>{const st=s.steps[n],seen=new Set(s.steps.slice(0,n).map(x=>x.at));
+    $$('.node').forEach(el=>{const k=+el.dataset.k;el.classList.toggle('on',k===st.at);el.classList.toggle('done',seen.has(k))});
+    $('#packetbox').innerHTML=st.value!==undefined?`<div class="packet">${fmt(st.value)}</div>`:'';
+    $('#steptxt').innerHTML=fmt(st.text);$('#dots').innerHTML=s.steps.map((_,k)=>`<i class="${k<=n?'on':''}"></i>`).join('');
+    $('#nextStep').textContent=n<s.steps.length-1?'Next step':(i===LESSON.length-1?'Quiz me':'Next');if(n>0)sfx.drop()};
+  $('#nextStep').onclick=()=>{if(n<s.steps.length-1){n++;draw()}else go(i+1)};
+  draw();
+}
+
+// slider: move one setting and watch what it selects or produces
+function slider(s,i){
+  enter();const P=s.positions,start=Math.min(P.length-1,Math.max(0,s.start||0));
+  h(tagOf(i,s)+lead(s)+`<div class="slide"><span>${esc(s.label||'')}</span><input type="range" id="rng" min="0" max="${P.length-1}" value="${start}" aria-label="${esc(s.label||'value')}"><b id="rv"></b></div>
+    <pre id="slcode" hidden></pre>${s.cells?`<div class="cells" id="cells">${s.cells.map((c,k)=>`<div class="cell"><small>${k}</small>${esc(c)}</div>`).join('')}</div>`:''}
+    <p id="slsay"></p>`+navOf(i));
+  const draw=()=>{const p=P[+$('#rng').value];$('#rv').textContent=p.label;$('#slcode').hidden=!p.code;$('#slcode').innerHTML=codeHTML(p.code||'');
+    $$('#cells .cell').forEach((c,k)=>c.classList.toggle('on',(p.highlight||[]).includes(k)));$('#slsay').innerHTML=fmt(p.say||'')};
+  $('#rng').oninput=()=>{sfx.tick();draw()};draw();
+}
+
+// build: put the pieces of a line of code in order
+function build(s,i){
+  enter();const all=s.pieces.map((t,k)=>({t,k})).concat((s.extras||[]).map(t=>({t,k:-1})));
+  const pool=VC.scramble(all.length,all.length+5).map(n=>all[n]);let line=[];
+  h(tagOf(i,s)+lead(s)+`<div class="line" id="line" aria-label="Your line"></div><div class="pool" id="pool"></div>
+    <div class="row"><button class="btn ghost" id="show">Show me</button><button class="btn ghost" id="clear">Clear</button></div><p id="bsay" class="muted"></p>`+navOf(i));
+  const draw=()=>{$('#line').innerHTML=line.map((p,k)=>`<button class="piece" data-at="${k}">${esc(pool[p].t)}</button>`).join('');
+    $('#pool').innerHTML=pool.map((x,k)=>`<button class="piece" data-p="${k}" ${line.includes(k)?'disabled':''}>${esc(x.t)}</button>`).join('');
+    const L=$('#line');L.classList.remove('wrongline','rightline');
+    if(line.length>=s.pieces.length){const ok=line.length===s.pieces.length&&line.every((p,k)=>pool[p].k===k);
+      L.classList.add(ok?'rightline':'wrongline');
+      if(ok){$('#bsay').innerHTML=fmt(s.say||'That is the line.');sfx.good();if(A)burst(...mid(L),30,6);$('#next').classList.toggle('glow',A);say('Built it.','happy')}
+      else{const bad=line.findIndex((p,k)=>pool[p].k!==k);$('#bsay').textContent=`Not quite. Look at piece ${bad+1}. Tap a piece in your line to take it out.`;sfx.nope()}}
+    else $('#bsay').textContent=''};
+  $('#pool').onclick=e=>{const p=e.target.dataset.p;if(p!==undefined&&!e.target.disabled){line.push(+p);sfx.click();draw()}};
+  $('#line').onclick=e=>{const a=e.target.dataset.at;if(a!==undefined){line.splice(+a,1);draw()}};
+  $('#clear').onclick=()=>{line=[];draw()};
+  $('#show').onclick=()=>{line=s.pieces.map((_,k)=>pool.findIndex(x=>x.k===k));draw()};
+  draw();
+}
+
+// compare: the data before and after one operation
+function compare(s,i){
+  enter();let after=false;
+  h(tagOf(i,s)+lead(s)+(s.code?`<pre>${codeHTML(s.code)}</pre>`:'')+`<div class="controls"><div class="seg" id="ba"><button data-v="0">Before</button><button data-v="1">After</button></div></div>
+    <div class="stage" id="stage"></div><p class="muted" id="csay"></p>`+navOf(i));
+  const draw=first=>{$$('#ba button').forEach(b=>b.classList.toggle('on',(b.dataset.v==='1')===after));
+    const put=()=>{$('#stage').innerHTML=rowsHTML(after?s.after:s.before)};first?put():flip($('#stage'),put);
+    $('#csay').innerHTML=after?fmt(s.say||''):''};
+  $('#ba').onclick=e=>{if(e.target.dataset.v!==undefined){after=e.target.dataset.v==='1';sfx.drop();draw()}};
+  draw(true);
+}
+
 // A scene the agent wrote for this topic. It gets a small toolkit and can't break the quiz:
 // if it throws, the page shows the scene's fallback instead, and Next always works.
 function custom(s,i){
@@ -479,11 +608,12 @@ function startQuiz(){quiz=new VC.Quiz();setCombo(0);if(LESSON.length)say('Quiz t
 function showQ(){
   const my=enter(),qi=quiz.index,q=quiz.question;progress(LESSON.length+1+qi);
   const tag=`<div class="tag">Check ${qi+1} of ${QN}${q.type==='expect'?': what do you expect?':''}${quiz.round>1?' (retry)':''}</div>`;
-  if(q.type==='order'){
-    let cur=VC.scramble(q.items.length,qi+q.items.length);
-    h(tag+`<h2>${fmt(q.prompt)}</h2>${q.code?`<pre>${codeHTML(q.code)}</pre>`:''}<p class="muted small">Drag, or use the arrows.</p><div class="drag" id="drag"></div><div id="fb"></div><div class="nav"><span></span><button class="btn" id="check" data-enter>Check order</button></div>`);
+  if(q.type==='order'||q.type==='match'){
+    const pairs=q.type==='match',items=pairs?q.pairs.map(p=>p.right):q.items;
+    let cur=VC.scramble(items.length,qi+items.length);
+    h(tag+`<h2>${fmt(q.prompt)}</h2>${q.code?`<pre>${codeHTML(q.code)}</pre>`:''}<p class="muted small">${pairs?'Move the right-hand side until every row is a match. Drag, or use the arrows.':'Drag, or use the arrows.'}</p><div class="drag" id="drag"></div><div id="fb"></div><div class="nav"><span></span><button class="btn" id="check" data-enter>${pairs?'Check matches':'Check order'}</button></div>`);
     const box=$('#drag');
-    const draw=()=>{box.innerHTML=cur.map((it,k)=>`<div class="di" draggable="true" data-i="${k}" data-key="${it}"><span class="n">${k+1}</span><span class="t">${fmt(q.items[it])}</span><button class="mv" data-up="${k}" aria-label="Move up">↑</button><button class="mv" data-down="${k}" aria-label="Move down">↓</button></div>`).join('')};
+    const draw=()=>{box.innerHTML=cur.map((it,k)=>`<div class="di" draggable="true" data-i="${k}" data-key="${it}">${pairs?`<span class="lft">${fmt(q.pairs[k].left)}</span>`:`<span class="n">${k+1}</span>`}<span class="t">${fmt(items[it])}</span><button class="mv" data-up="${k}" aria-label="Move up">↑</button><button class="mv" data-down="${k}" aria-label="Move down">↓</button></div>`).join('')};
     draw();let from=null;
     box.addEventListener('dragstart',e=>{const d=e.target.closest('.di');from=+d.dataset.i;d.classList.add('dragging')});
     box.addEventListener('dragend',()=>{from=null;draw()});
@@ -497,25 +627,25 @@ function showQ(){
       box.style.pointerEvents='none';answered(ok,qi,q,$('#check'),ok?'y':'n')};
     return;
   }
-  const chat=A&&q.type==='explain';
-  const optsHTML=`<div class="opts" id="opts">${q.options.map((o,k)=>`<button class="opt" data-i="${k}"><kbd>${k+1}</kbd><span>${q.type==='predict'?'<pre>'+esc(o)+'</pre>':fmt(o)}</span></button>`).join('')}</div><div id="fb"></div><div class="nav" id="qnav"></div>`;
+  const chat=A&&q.type==='explain',opts=q.type==='bug'?q.lines:q.options,mono=['predict','bug','fill'].includes(q.type);
+  const optsHTML=`<div class="opts" id="opts">${opts.map((o,k)=>`<button class="opt" data-i="${k}"><kbd>${k+1}</kbd><span>${mono?'<pre>'+esc(o)+'</pre>':fmt(o)}</span></button>`).join('')}</div><div id="fb"></div><div class="nav" id="qnav"></div>`;
   if(chat){
     h(tag+`<div class="chat" id="chat"></div><p class="muted small" id="ask" hidden>Pick the reply you'd send:</p>`+optsHTML);
     $('#opts').hidden=true;
     (async()=>{await typing(my,700,q.from||'Sam');await bubble('them',q.prompt,my,q.from||'Sam');if(my!==scene)return;$('#ask').hidden=false;$('#opts').hidden=false})();
   }else{
-    h(tag+`<h2>${fmt(q.prompt)}</h2>`+(q.code?(q.type==='predict'?`<pre class="term" id="term"><span class="pr">&gt;&gt;&gt; </span>${codeHTML(q.code)}<span class="out" id="out"></span><span class="cursor"></span></pre>`:`<pre>${codeHTML(q.code)}</pre>`):'')+optsHTML);
+    h(tag+`<h2>${fmt(q.prompt)}</h2>`+(q.code?(q.type==='predict'?`<pre class="term" id="term"><span class="pr">&gt;&gt;&gt; </span>${codeHTML(q.code)}<span class="out" id="out"></span><span class="cursor"></span></pre>`:`<pre>${codeHTML(q.code).replace('___','<span class="blank" id="blank">___</span>')}</pre>`):'')+optsHTML);
   }
   $('#opts').onclick=async e=>{
     const b=e.target.closest('.opt');if(!b||b.disabled)return;const k=+b.dataset.i,ok=k===q.answer;
     $$('.opt').forEach(x=>x.disabled=true);b.classList.add('picked');sfx.click();
-    if(q.type==='predict'&&$('#out')){for(const line of String(q.options[q.answer]).split('\n')){if(my!==scene)return;$('#out').textContent+='\n'+line;sfx.tick();await wait(300)}}
-    if(chat){await bubble('me',q.options[k],my);await typing(my,800,q.from||'Sam');
+    if(q.type==='predict'&&$('#out')){for(const line of String(opts[q.answer]).split('\n')){if(my!==scene)return;$('#out').textContent+='\n'+line;sfx.tick();await wait(300)}}
+    if(chat){await bubble('me',opts[k],my);await typing(my,800,q.from||'Sam');
       await bubble('them',ok?(q.thanks||'Ohh, that makes sense. Thanks!'):'Hmm, I don\'t think that\'s it...',my,q.from||'Sam');
       if(my!==scene)return;const r=document.createElement('div');r.className='react';r.textContent=ok?'🙌':'🤔';$('#chat').appendChild(r)}
     if(my!==scene)return;
-    b.classList.add(ok?'right':'wrong');
-    if(!ok)setTimeout(()=>{const c=$(`.opt[data-i="${q.answer}"]`);if(c)c.classList.add('right')},450);
+    b.classList.add(ok?'right':'wrong');if($('#blank'))$('#blank').textContent=opts[k];
+    if(!ok)setTimeout(()=>{const c=$(`.opt[data-i="${q.answer}"]`);if(c)c.classList.add('right');if($('#blank'))$('#blank').textContent=opts[q.answer]},450);
     answered(ok,qi,q,b,String(k));
   };
 }
@@ -528,7 +658,7 @@ function answered(ok,qi,q,el,mark){
   const exp=q.type==='expect',fb=$('#fb');fb.className='fb '+(ok?'good':'bad');
   fb.innerHTML=(ok?(exp?'<b>That\'s what the code does.</b> ':'<b>Nailed it.</b> '):(exp?'<b>The code does something else.</b> ':'<b>Not quite.</b> '))+fmt(q.why)
     +(q.source?` <span class="muted small">(${esc(q.source)})</span>`:'')
-    +(!ok&&q.type!=='order'?'<div style="margin-top:10px"><button class="pill" id="dispute">That\'s not what it should do</button></div>':'');
+    +(!ok&&q.type!=='order'&&q.type!=='match'?'<div style="margin-top:10px"><button class="pill" id="dispute">That\'s not what it should do</button></div>':'');
   // A dispute is a possible bug in the code, not a miss: it is logged and doesn't count against the user.
   if($('#dispute'))$('#dispute').onclick=()=>{quiz.dispute(qi);addXP(firstGo?20:10,$('#dispute'));
     fb.className='fb';fb.style.border='1px solid var(--line)';

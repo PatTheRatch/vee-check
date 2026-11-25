@@ -5,9 +5,12 @@ exact topic: the learner does the concept with their hands instead of reading ab
 The shell around it (header, XP, mascot, quiz, pass code) is fixed, so a custom scene can
 be ambitious without risking the gate.
 
-Only write one when the `look` setting is `arcade`. It costs extra tokens, so make it earn
-its place: if you can't think of an interaction that *is* the concept, use a `steps` or
-`playground` scene instead.
+Only write one when the `look` setting is `arcade`, **and only when nothing in the
+interactive template library fits** (`sort`, `match`, `flow`, `slider`, `build`, `compare`:
+see quiz-format.md). Sorting things into piles, pairing things up, following something
+through a system, moving a slider, assembling a line and before/after are all covered
+already, need no code, and can't break. A custom scene costs extra tokens every time, so
+save it for an interaction the library can't express.
 
 ## The idea to aim for
 

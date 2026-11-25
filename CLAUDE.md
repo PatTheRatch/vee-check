@@ -123,6 +123,26 @@ Fun, animated, gamified. Not plain flashcards.
   `prototypes/pandas-groupby-overkill.html` (`arcade`), `prototypes/pandas-groupby.html` (`classic`),
   `prototypes/pandas-groupby-nofrills.html` (`plain`). Step 3's templates generalize them.
 
+## Template library (built)
+Reusable interactive pieces that Claude fills with data, so a lesson is hands-on without new
+code each time. All work in all three looks (plain shows them as tables or lists).
+- **Scenes:** `sort` (into piles), `match` (pairs, with unmatched extras), `flow` (follow one
+  thing through the parts), `slider`, `build` (assemble a line), `compare` (before/after).
+  Plus the originals: `story`, `steps`, `playground`, `card`.
+- **Questions:** `fill` (the blank), `bug` (spot the line), `match` (terms). Plus `predict`,
+  `order`, `explain`, `choice`, `expect`.
+- The skill says: at least one library scene per lesson; a custom arcade scene only when
+  nothing in the library fits.
+- Worked example using every template: `examples/pandas-playground/quiz-example-templates/`.
+- Ideas not built yet: two-handle slider (for `a[1:4]`), a call-stack scene (recursion), a
+  node-and-arrow map for architecture, a "worked calculation" scene for domain math.
+
+## Naming (open)
+"Vibe Check" is already used by other products (agileforce.co.uk/vibecheck,
+vibecheck.software, vibe-check.cloud). Patrick is fine with it for now and wants
+alternatives considered before a public release. The name appears in the plugin id, the
+command prefix (`/vibe-check:`), the `.vibe-check/` folders and the page header.
+
 ## Learning tracks: what kind of thing to learn
 Not everyone cares about the code. Someone building a portfolio risk platform needs to know how
 *the platform* works (how tracking error is computed, where benchmark weights come from, what

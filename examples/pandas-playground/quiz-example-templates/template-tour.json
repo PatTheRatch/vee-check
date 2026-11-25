@@ -1,0 +1,119 @@
+{
+  "badge": "🧰",
+  "lesson": [
+    {
+      "type": "sort",
+      "title": "sort: whose fault is this status code?",
+      "body": "A web server answers every request with a number. The first digit tells you who has to fix it.",
+      "items": [
+        { "label": "200", "detail": "OK", "group": "It worked" },
+        { "label": "404", "detail": "Not found", "group": "The request was wrong" },
+        { "label": "500", "detail": "Server error", "group": "The server broke" },
+        { "label": "201", "detail": "Created", "group": "It worked" },
+        { "label": "403", "detail": "Forbidden", "group": "The request was wrong" },
+        { "label": "503", "detail": "Unavailable", "group": "The server broke" }
+      ],
+      "groups": ["It worked", "The request was wrong", "The server broke"],
+      "result": {
+        "button": "Show the pattern",
+        "per_group": { "It worked": "2xx", "The request was wrong": "4xx", "The server broke": "5xx" },
+        "say": "**2xx** worked, **4xx** means fix the request, **5xx** means the server has to be fixed."
+      }
+    },
+    {
+      "type": "match",
+      "title": "match: which customer does each order belong to?",
+      "body": "A SQL `JOIN` pairs rows from two tables when a column has the same value in both.",
+      "left_title": "orders",
+      "right_title": "customers",
+      "pairs": [
+        { "left": "Order 1, customer 7", "right": "7: Ada" },
+        { "left": "Order 2, customer 9", "right": "9: Grace" },
+        { "left": "Order 3, customer 7", "right": "7: Ada" }
+      ],
+      "extras": { "left": ["Order 4, customer 42"], "right": ["11: Linus"] },
+      "say": "An inner join keeps only the pairs. Order 4 and Linus have no partner, so they drop out of the result."
+    },
+    {
+      "type": "flow",
+      "title": "flow: what happens when Claude tries to edit a file",
+      "nodes": [
+        { "label": "Claude", "detail": "wants to edit" },
+        { "label": "The hook", "detail": "gate.py" },
+        { "label": "pending.json", "detail": "the lock file" },
+        { "label": "Your file", "detail": "app.py" }
+      ],
+      "steps": [
+        { "at": 0, "text": "Claude decides to edit `app.py` and announces the tool call.", "value": "Edit app.py" },
+        { "at": 1, "text": "Before anything is written, Claude Code hands the request to the hook.", "value": "{ \"tool_name\": \"Edit\", \"file_path\": \"app.py\" }" },
+        { "at": 2, "text": "The hook asks one question: does the lock file exist? A quiz is pending, so it does.", "value": "pending.json exists" },
+        { "at": 1, "text": "So the hook exits with code **2**. That means block, and tell Claude why.", "value": "exit 2" },
+        { "at": 0, "text": "Claude gets the message and waits for your pass code. `app.py` was never touched.", "value": "Vibe Check: edit blocked" }
+      ]
+    },
+    {
+      "type": "slider",
+      "title": "slider: how far does a slice reach?",
+      "body": "`letters[:n]` takes items from the start, up to but **not including** position n.",
+      "label": "n",
+      "start": 2,
+      "cells": ["a", "b", "c", "d", "e"],
+      "positions": [
+        { "label": "0", "code": "letters[:[[0]]]", "highlight": [], "say": "Nothing: it stops before position 0." },
+        { "label": "1", "code": "letters[:[[1]]]", "highlight": [0], "say": "Just `a`." },
+        { "label": "2", "code": "letters[:[[2]]]", "highlight": [0, 1], "say": "`a` and `b`. Position 2 (`c`) is where it stops, not included." },
+        { "label": "3", "code": "letters[:[[3]]]", "highlight": [0, 1, 2], "say": "Three items: positions 0, 1 and 2." },
+        { "label": "4", "code": "letters[:[[4]]]", "highlight": [0, 1, 2, 3], "say": "Everything except the last one." },
+        { "label": "5", "code": "letters[:[[5]]]", "highlight": [0, 1, 2, 3, 4], "say": "All five. There is no position 5, and that's fine." }
+      ]
+    },
+    {
+      "type": "build",
+      "title": "build: assemble the line that totals weight by region",
+      "body": "Start with the table, split it into piles, pick the column, then do the math.",
+      "pieces": ["df", ".groupby('region')", "['weight']", ".sum()"],
+      "extras": [".sort()", "['region']"],
+      "say": "Table, then split by region, then the weight column, then add each pile up."
+    },
+    {
+      "type": "compare",
+      "title": "compare: what sorting does to the table",
+      "code": "df.sort_values('weight', ascending=False)",
+      "before": { "columns": ["ticker", "region", "weight"], "rows": [["AAA", "Europe", "5"], ["BBB", "Asia", "3"], ["CCC", "Europe", "4"], ["DDD", "EM", "2"]] },
+      "after": { "columns": ["ticker", "region", "weight"], "rows": [["AAA", "Europe", "5"], ["CCC", "Europe", "4"], ["BBB", "Asia", "3"], ["DDD", "EM", "2"]] },
+      "say": "Same rows, new order. Nothing was added, removed or changed."
+    }
+  ],
+  "questions": [
+    {
+      "type": "fill",
+      "prompt": "Fill the blank so this gives the average weight per region.",
+      "code": "df.groupby('region')['weight'].___()",
+      "options": ["sum", "mean", "count", "avg"],
+      "answer": 1,
+      "why": "`mean` is pandas' word for average. `sum` adds, `count` counts rows, and there is no `avg` in pandas (that one is SQL)."
+    },
+    {
+      "type": "bug",
+      "prompt": "This should print the total weight per region. Which line has the bug?",
+      "lines": [
+        "import pandas as pd",
+        "df = pd.read_csv('holdings.csv')",
+        "totals = df.groupby('weight')['region'].sum()",
+        "print(totals)"
+      ],
+      "answer": 2,
+      "why": "The two column names are swapped. It should split by `region` and add up `weight`: `df.groupby('region')['weight'].sum()`."
+    },
+    {
+      "type": "match",
+      "prompt": "Match each status code to what it means.",
+      "pairs": [
+        { "left": "404", "right": "The request asked for something that isn't there" },
+        { "left": "500", "right": "The server broke while handling it" },
+        { "left": "200", "right": "It worked" }
+      ],
+      "why": "2xx worked, 4xx is a problem with the request, 5xx is a problem on the server."
+    }
+  ]
+}

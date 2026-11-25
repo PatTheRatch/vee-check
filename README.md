@@ -57,6 +57,23 @@ Same lesson and questions in each. Pick one with `/vibe-check:config look <name>
 Claude writes the lesson for your topic. `arcade` adds the most, since it also writes a small
 interactive scene. If usage matters, use `plain`, or set `trigger` to `big_concepts_only`.
 
+## Lessons you do, not just read
+
+Every lesson includes at least one scene where you do the concept with your hands. Claude
+picks from a built-in library, in any look:
+
+| Scene | You |
+|---|---|
+| Sort | drag items into the pile each belongs to |
+| Match | drag each item onto its partner |
+| Flow | step one request or number through the parts of a system |
+| Slider | move a setting and watch what it changes |
+| Build | assemble a line of code from pieces |
+| Compare | flip between the data before and after |
+
+Questions vary too: predict the output, fill the blank, spot the bug, put steps in order,
+match terms, explain it to a coworker, and "what do you expect?".
+
 ## Learn the platform, not just the code
 
 Not everyone cares how Python works. Every concept sits on one of three **tracks**, and you

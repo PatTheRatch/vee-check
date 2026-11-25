@@ -102,12 +102,19 @@ Read [quiz-format.md](quiz-format.md) before your first one. The short version:
 
 - **Teach before you test.** Every question must be answerable from the lesson alone.
 - **Prediction over definitions**, and at least one `explain` question (pick the best
-  plain-English explanation for a coworker). A good mix for three questions: one `predict`,
-  one `order` or `choice`, one `explain`.
+  plain-English explanation for a coworker). A good mix for three questions: one about
+  behaviour (`predict` or `expect`), one about the code itself (`fill`, `bug`, `order` or
+  `match`), and one `explain`. Vary the types from one Vibe Check to the next.
 - **One tiny, concrete dataset** from the user's own domain, carried through lesson and quiz.
 - **Check your answer key.** Work out every output yourself or run the code.
-- When `look` is `arcade`, make one scene a custom scene built for this topic. Read
-  [arcade-scenes.md](arcade-scenes.md) first. In the other looks, don't write one.
+- **Make the learner do something.** In every look, at least one scene should come from
+  the interactive template library in quiz-format.md: `sort`, `match`, `flow`, `slider`,
+  `build` or `compare`. Pick the one whose action *is* the concept (grouping → `sort`,
+  joining → `match`, a request or a calculation moving through parts → `flow`).
+- When `look` is `arcade` and no library template fits the concept, write one custom scene
+  for it. Read [arcade-scenes.md](arcade-scenes.md) first. If a library template fits, use
+  it instead: it costs a few lines of data and can't break. Never write a custom scene in
+  the other looks.
 - `level` is how much the user already knows (which words you can use without explaining
   them). `zoom` is how far into the mechanics this lesson goes. They move independently.
 
